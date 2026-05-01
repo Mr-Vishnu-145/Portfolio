@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "Protfolio-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: "/Portfolio/",   // 👈 🔥 ADD THIS LINE
+  base: "/Portfolio/",   
 
   server: {
     host: "::",
