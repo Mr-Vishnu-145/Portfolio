@@ -3,7 +3,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 const skillCategories = [
   {
     title: "Languages",
-    skills: ["Java", "Python", "C", "PHP", "JavaScript"],
+    skills: ["Java", "Python", "C",  "JavaScript"],
   },
   {
     title: "Frontend",
