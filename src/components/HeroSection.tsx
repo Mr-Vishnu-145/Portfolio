@@ -1,6 +1,8 @@
 import { ArrowDown, Github, Linkedin, Mail, Download } from "lucide-react";
 import AnimatedBackground from "./AnimatedBackground";
 import { useState, useEffect } from "react";
+import { getPortfolioData, HeroData } from "@/lib/portfolioData";
+import { Link } from "react-router-dom";
 
 const useTypingEffect = (text: string, speed = 80, delay = 600) => {
   const [displayed, setDisplayed] = useState("");
@@ -26,8 +28,41 @@ const useTypingEffect = (text: string, speed = 80, delay = 600) => {
 };
 
 const HeroSection = () => {
-  const { displayed: name, done: nameDone } = useTypingEffect("Vishnu ", 100, 800);
-  const { displayed: lastName, done: lastDone } = useTypingEffect("V", 100, 1500);
+  const [data, setData] = useState<HeroData>(() => getPortfolioData().hero);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(getPortfolioData().hero);
+    };
+    window.addEventListener("portfolioDataUpdate", handleUpdate);
+    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
+  }, []);
+
+  const { displayed: name, done: nameDone } = useTypingEffect(data.name, 100, 800);
+  const { displayed: lastName, done: lastDone } = useTypingEffect(data.lastName, 100, 1500);
+
+  const handleDownloadResume = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}resume.pdf`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Vishnu_Resume.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download resume:", error);
+      // Fallback
+      const fallbackLink = document.createElement("a");
+      fallbackLink.href = `${import.meta.env.BASE_URL}resume.pdf`;
+      fallbackLink.setAttribute("download", "Vishnu_Resume.pdf");
+      fallbackLink.click();
+    }
+  };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -48,58 +83,65 @@ const HeroSection = () => {
           )}
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-up opacity-0" style={{ animationDelay: "0.6s" }}>
-          Java / Full-Stack Developer — Building clean, scalable web applications with React.js, Spring Boot & more.
+          {data.description}
         </p>
 
         {/* Social links */}
         <div className="flex items-center justify-center gap-4 mb-10 animate-fade-up opacity-0" style={{ animationDelay: "0.8s" }}>
-          <a
-            href="https://github.com/Mr-Vishnu-145/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
-          >
-            <Github size={20} />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/vishnu145/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
-          >
-            <Linkedin size={20} />
-          </a>
-          <a
-            href="mailto:Vishnuvenkat014@gmail.com"
-            className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
-          >
-            <Mail size={20} />
-          </a>
+          {data.github && (
+            <a
+              href={data.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
+            >
+              <Github size={20} />
+            </a>
+          )}
+          {data.linkedin && (
+            <a
+              href={data.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
+            >
+              <Linkedin size={20} />
+            </a>
+          )}
+          {data.email && (
+            <a
+              href={`mailto:${data.email}`}
+              className="p-3 rounded-full border border-border bg-card/50 text-foreground hover:text-primary hover:border-primary transition-all duration-300 hover:scale-110"
+            >
+              <Mail size={20} />
+            </a>
+          )}
         </div>
 
         {/* CTA */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up opacity-0" style={{ animationDelay: "1s" }}>
-          <a href="#projects" className="px-8 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-1000 animate-glow-pulse">
+          <Link to="/projects" className="px-8 py-3 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-all duration-1000 animate-glow-pulse">
             View Projects
-          </a>
+          </Link>
           <a
-            href="/resume.pdf"
+            href={`${import.meta.env.BASE_URL}resume.pdf`}
             download="Vishnu_Resume.pdf"
+            onClick={handleDownloadResume}
             className="inline-flex items-center gap-2 px-8 py-3 rounded-lg border border-border text-foreground font-semibold hover:border-primary hover:text-primary transition-all duration-300 cursor-pointer"
           >
             <Download size={18} />
             Download Resume
           </a>
-          <a href="#contact" className="px-8 py-3 rounded-lg border border-border text-foreground font-semibold hover:border-primary hover:text-primary transition-all duration-300">
+          <Link to="/contact" className="px-8 py-3 rounded-lg border border-border text-foreground font-semibold hover:border-primary hover:text-primary transition-all duration-300">
             Get In Touch
-          </a>
+          </Link>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <a href="#about" className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-float text-muted-foreground hover:text-primary transition-colors">
+      <Link to="/about" className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-float text-muted-foreground hover:text-primary transition-colors">
         <ArrowDown size={24} />
-      </a>
+      </Link>
     </section>
   );
 };

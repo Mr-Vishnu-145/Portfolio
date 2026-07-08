@@ -1,8 +1,50 @@
+import { useState, useEffect } from "react";
 import { Mail, Phone, Github, Linkedin } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
+import { getPortfolioData, HeroData } from "@/lib/portfolioData";
 
 const ContactSection = () => {
   const { ref, isVisible } = useScrollAnimation();
+  const [data, setData] = useState<HeroData>(() => getPortfolioData().hero);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setData(getPortfolioData().hero);
+    };
+    window.addEventListener("portfolioDataUpdate", handleUpdate);
+    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
+  }, []);
+
+  const contactItems = [
+    { 
+      icon: Mail, 
+      label: "Email", 
+      value: data.email || "Not Provided", 
+      href: `mailto:${data.email}`, 
+      show: !!data.email 
+    },
+    { 
+      icon: Phone, 
+      label: "Phone", 
+      value: data.phone || "Not Provided", 
+      href: `tel:${data.phone ? data.phone.replace(/[^+\d]/g, "") : ""}`, 
+      show: !!data.phone 
+    },
+    { 
+      icon: Github, 
+      label: "GitHub", 
+      value: data.github ? data.github.replace(/https?:\/\/(www\.)?github\.com\//, "").replace(/\/$/, "") : "Not Provided", 
+      href: data.github, 
+      show: !!data.github 
+    },
+    { 
+      icon: Linkedin, 
+      label: "LinkedIn", 
+      value: data.linkedin ? data.linkedin.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, "").replace(/\/$/, "") : "Not Provided", 
+      href: data.linkedin, 
+      show: !!data.linkedin 
+    },
+  ].filter(item => item.show);
 
   return (
     <section id="contact" className="py-24 bg-card">
@@ -13,12 +55,7 @@ const ContactSection = () => {
         <div className="w-16 h-1 bg-primary mx-auto rounded-full mb-12" />
 
         <div className="max-w-2xl mx-auto grid sm:grid-cols-2 gap-6">
-          {[
-            { icon: Mail, label: "Email", value: "Vishnuvenkat014@gmail.com", href: "mailto:Vishnuvenkat014@gmail.com" },
-            { icon: Phone, label: "Phone", value: "+91-9500861022", href: "tel:+919500861022" },
-            { icon: Github, label: "GitHub", value: "Mr-Vishnu-145", href: "https://github.com/Mr-Vishnu-145/" },
-            { icon: Linkedin, label: "LinkedIn", value: "vishnu145", href: "https://www.linkedin.com/in/vishnu145/" },
-          ].map((item, i) => (
+          {contactItems.map((item, i) => (
             <a
               key={item.label}
               href={item.href}

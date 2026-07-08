@@ -1,19 +1,19 @@
+import { useState, useEffect } from "react";
 import { Award } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-
-const certs = [
-  { name: "AWS Academy Graduate – Cloud Foundations", org: "AWS Academy" },
-  { name: "Java Programming", org: "Great Learning" },
-  { name: "Building a Website with Node.js and Express.js", org: "LinkedIn Learning" },
-  { name: "Learning MongoDB", org: "LinkedIn Learning" },
-  { name: "SQL and Relational Databases 101", org: "IBM (Cognitive Class)" },
-  { name: "Problem Solving Through Programming in C", org: "NPTEL (IIT Kharagpur)" },
-  { name: "Software Testing", org: "NPTEL (IIIT Bangalore / IIT Madras)" },
-  { name: "Time Management", org: "Infosys Springboard" },
-];
+import { getPortfolioData, CertificationData } from "@/lib/portfolioData";
 
 const CertificationsSection = () => {
   const { ref, isVisible } = useScrollAnimation();
+  const [certs, setCerts] = useState<CertificationData[]>(() => getPortfolioData().certifications);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCerts(getPortfolioData().certifications);
+    };
+    window.addEventListener("portfolioDataUpdate", handleUpdate);
+    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
+  }, []);
 
   return (
     <section id="certifications" className="py-24">
@@ -26,7 +26,7 @@ const CertificationsSection = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
           {certs.map((cert, i) => (
             <div
-              key={cert.name}
+              key={cert.name + i}
               className={`p-5 rounded-xl border border-border bg-card hover:border-primary transition-all duration-500 hover:-translate-y-1 group ${isVisible ? "animate-scale-in" : "opacity-0"}`}
               style={{ animationDelay: `${0.05 + i * 0.08}s` }}
             >

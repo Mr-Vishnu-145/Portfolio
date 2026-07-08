@@ -1,43 +1,15 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-
-const projects = [
-  {
-    title: "ERP Management System",
-    subtitle: "Full-Stack Project",
-    tech: ["React.js", "Spring Boot", "MySQL"],
-    desc: "A full-stack ERP application to automate organizational processes including Finance, HR, Inventory and Enterprise Reports modules.",
-    features: ["Responsive UI Components", "RESTful APIs", "MVC Architecture", "Relational DB Schemas"],
-    link: "https://github.com/Mr-Vishnu-145",
-  },
-  {
-    title: "Hospital Management System",
-    subtitle: "Full-Stack Project",
-    tech: ["React.js", "Spring Boot", "MySQL"],
-    desc: "Developed a scalable full-stack ERP system to automate core business operations. Modeled and managed relational databases using MySQL, ensuring data integrity and optimized queries. Engineered responsive, reusable UI components using React.js, improving user experience and maintainability.",
-    features: ["CRUD Operations", "Modular Design", "Scalable Code"],
-    link: "https://github.com/Mr-Vishnu-145",
-  },
-  {
-    title: "Employee Management System",
-    subtitle: "Java Console Application",
-    tech: ["Java"],
-    desc: "Console-based Java application for employee data handling with complete CRUD operations and structured program design.",
-    features: ["Console UI", "CRUD Operations", "Structured Design"],
-    link: "https://github.com/Mr-Vishnu-145",
-  },
-  {
-    title: "Guess Game",
-    subtitle: "Web Game",
-    tech: ["HTML", "CSS", "JavaScript"],
-    desc: "An interactive browser-based game with JavaScript logic and responsive, user-friendly interface.",
-    features: ["Interactive Gameplay", "Responsive Design"],
-    link: "https://github.com/Mr-Vishnu-145",
-  },
-];
+import { usePortfolioStore } from "@/store/usePortfolioStore";
 
 const ProjectsSection = () => {
   const { ref, isVisible } = useScrollAnimation();
+  const projects = usePortfolioStore((state) => state.data.projects);
+
+  // Filter featured projects (show all featured, or fallback to first 4 if none are marked)
+  const featuredProjects = projects.filter(p => p.featured);
+  const displayProjects = featuredProjects.length > 0 ? featuredProjects : projects.slice(0, 4);
 
   return (
     <section id="projects" className="py-24 bg-card">
@@ -48,9 +20,9 @@ const ProjectsSection = () => {
         <div className="w-16 h-1 bg-primary mx-auto rounded-full mb-12" />
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {projects.map((project, i) => (
+          {displayProjects.map((project, i) => (
             <a
-              key={project.title}
+              key={project.id || project.title + i}
               href={project.link}
               target="_blank"
               rel="noopener noreferrer"
@@ -70,7 +42,7 @@ const ProjectsSection = () => {
                   <ExternalLink size={18} className="text-muted-foreground group-hover:text-primary transition-colors mt-1" />
                 </div>
 
-                <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{project.desc}</p>
+                <p className="text-muted-foreground text-sm mb-4 leading-relaxed line-clamp-3">{project.desc}</p>
 
                 <div className="flex flex-wrap gap-1.5 mb-4">
                   {project.tech.map((t) => (
@@ -81,7 +53,7 @@ const ProjectsSection = () => {
                 </div>
 
                 <ul className="space-y-1">
-                  {project.features.map((f) => (
+                  {project.features.slice(0, 3).map((f) => (
                     <li key={f} className="text-xs text-muted-foreground flex items-center gap-2">
                       <span className="w-1 h-1 rounded-full bg-primary" />
                       {f}
@@ -91,6 +63,16 @@ const ProjectsSection = () => {
               </div>
             </a>
           ))}
+        </div>
+
+        {/* View All Projects Button */}
+        <div className="text-center mt-12">
+          <Link
+            to="/projects"
+            className="inline-flex items-center gap-1.5 px-6 py-3 bg-primary text-primary-foreground font-semibold text-xs rounded-xl hover:opacity-95 shadow-md shadow-primary/10 transition-all duration-300 hover:gap-2.5"
+          >
+            View All Projects <ArrowRight size={13} />
+          </Link>
         </div>
       </div>
     </section>

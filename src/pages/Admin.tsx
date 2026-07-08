@@ -1,0 +1,1759 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
+  User, BookOpen, Cpu, Briefcase, Award, Sparkles,
+  GraduationCap, Trophy, FileText, Github
+} from "lucide-react";
+import { toast } from "sonner";
+import {
+  getPortfolioData, savePortfolioData, PortfolioData,
+  ProjectData, CertificationData, SkillCategory, AboutHighlight,
+  ExperienceData, EducationData, AchievementItem, ResumeData, ContactExtraData
+} from "@/lib/portfolioData";
+import { usePortfolioStore } from "@/store/usePortfolioStore";
+import { useGitHubRepos } from "@/hooks/useGitHubRepos";
+
+const hashPassword = async (password: string): Promise<string> => {
+  const msgBuffer = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+};
+
+interface GitHubRepo {
+  name: string;
+  language: string | null;
+  description: string | null;
+  html_url: string;
+}
+
+const Admin = () => {
+  const navigate = useNavigate();
+  const [passcode, setPasscode] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("admin_auth") === "true";
+    }
+    return false;
+  });
+
+  const storeData = usePortfolioStore((state) => state.data);
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
+  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "security">("hero");
+
+  useEffect(() => {
+    setPortfolioData(storeData);
+  }, [storeData]);
+
+  // Debounced auto-save to Zustand store and localStorage for real-time live sync
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (JSON.stringify(portfolioData) !== JSON.stringify(storeData)) {
+        usePortfolioStore.getState().updateData(portfolioData);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [portfolioData, storeData]);
+
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+
+  // Authentication Handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const DEFAULT_HASH = "14cf0ff94aa0774dfb8197dd86dfc8dfc6c08c49fe3216e18390ae0be49825d9";
+      const storedHash = localStorage.getItem("admin_passcode_hash") || DEFAULT_HASH;
+      const inputHash = await hashPassword(passcode);
+      
+      if (inputHash === storedHash) {
+        sessionStorage.setItem("admin_auth", "true");
+        setIsAuthenticated(true);
+        toast.success("Authenticated successfully!");
+      } else {
+        toast.error("Incorrect passcode! Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Authentication failed.");
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const DEFAULT_HASH = "14cf0ff94aa0774dfb8197dd86dfc8dfc6c08c49fe3216e18390ae0be49825d9";
+      const storedHash = localStorage.getItem("admin_passcode_hash") || DEFAULT_HASH;
+      
+      const currentHash = await hashPassword(currentPass);
+      if (currentHash !== storedHash) {
+        toast.error("Current passcode is incorrect!");
+        return;
+      }
+
+      if (newPass.length < 6) {
+        toast.error("New passcode must be at least 6 characters long.");
+        return;
+      }
+
+      if (newPass !== confirmPass) {
+        toast.error("New passcodes do not match!");
+        return;
+      }
+
+      const hashed = await hashPassword(newPass);
+      localStorage.setItem("admin_passcode_hash", hashed);
+      toast.success("Passcode changed successfully!");
+      
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update passcode.");
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("admin_auth");
+    setIsAuthenticated(false);
+    toast.info("Logged out.");
+  };
+
+  // General Save Handler
+  const handleSave = () => {
+    usePortfolioStore.getState().updateData(portfolioData);
+    toast.success("Portfolio changes saved successfully!");
+  };
+
+  // State Updaters
+  const updateHero = (field: keyof typeof portfolioData.hero, value: string) => {
+    setPortfolioData({
+      ...portfolioData,
+      hero: {
+        ...portfolioData.hero,
+        [field]: value
+      }
+    });
+  };
+
+  const updateAboutBio = (value: string) => {
+    setPortfolioData({
+      ...portfolioData,
+      about: {
+        ...portfolioData.about,
+        bio: value
+      }
+    });
+  };
+
+  const updateAboutHighlight = (index: number, field: keyof AboutHighlight, value: string) => {
+    const updatedHighlights = [...portfolioData.about.highlights];
+    updatedHighlights[index] = {
+      ...updatedHighlights[index],
+      [field]: value
+    };
+    setPortfolioData({
+      ...portfolioData,
+      about: {
+        ...portfolioData.about,
+        highlights: updatedHighlights
+      }
+    });
+  };
+
+  // Skills Handlers
+  const handleAddSkill = (catIndex: number, skillName: string) => {
+    if (!skillName.trim()) return;
+    const updatedSkills = [...portfolioData.skills];
+    updatedSkills[catIndex].skills.push(skillName.trim());
+    setPortfolioData({ ...portfolioData, skills: updatedSkills });
+  };
+
+  const handleRemoveSkill = (catIndex: number, skillIndex: number) => {
+    const updatedSkills = [...portfolioData.skills];
+    updatedSkills[catIndex].skills.splice(skillIndex, 1);
+    setPortfolioData({ ...portfolioData, skills: updatedSkills });
+  };
+
+  const handleAddSkillCategory = (title: string) => {
+    if (!title.trim()) return;
+    const newCategory: SkillCategory = { title: title.trim(), skills: [] };
+    setPortfolioData({
+      ...portfolioData,
+      skills: [...portfolioData.skills, newCategory]
+    });
+  };
+
+  const handleRemoveSkillCategory = (index: number) => {
+    const updatedSkills = [...portfolioData.skills];
+    updatedSkills.splice(index, 1);
+    setPortfolioData({ ...portfolioData, skills: updatedSkills });
+  };
+
+  // Projects Handlers
+  const [newProject, setNewProject] = useState<Partial<ProjectData>>({
+    title: "", subtitle: "", desc: "", link: "", tech: [], features: []
+  });
+  const [projectTechInput, setProjectTechInput] = useState("");
+  const [projectFeatureInput, setProjectFeatureInput] = useState("");
+
+  // GitHub Fetcher State with TanStack Query
+  const [ghUsername, setGhUsername] = useState("Mr-Vishnu-145");
+  const [shouldFetchRepos, setShouldFetchRepos] = useState(false);
+  const { data: ghRepos = [], isFetching, isError, error } = useGitHubRepos(ghUsername, shouldFetchRepos);
+
+  const fetchGitHubRepos = () => {
+    if (!ghUsername.trim()) {
+      toast.error("Please enter a GitHub username.");
+      return;
+    }
+    setShouldFetchRepos(true);
+  };
+
+  useEffect(() => {
+    if (shouldFetchRepos && !isFetching) {
+      if (isError) {
+        toast.error((error as Error)?.message || "Error fetching GitHub repositories.");
+      } else if (ghRepos.length > 0) {
+        toast.success(`Loaded ${ghRepos.length} repositories successfully!`);
+      }
+      setShouldFetchRepos(false);
+    }
+  }, [ghRepos, isFetching, isError, error, shouldFetchRepos]);
+
+  const handlePreloadRepo = (repo: GitHubRepo) => {
+    let formattedTitle = repo.name.replace(/[-_]/g, " ");
+    formattedTitle = formattedTitle
+      .split(" ")
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
+    setNewProject({
+      title: formattedTitle,
+      subtitle: repo.language ? `GitHub Project (${repo.language})` : "GitHub Project",
+      desc: repo.description || "",
+      link: repo.html_url,
+      tech: repo.language ? [repo.language] : [],
+      features: []
+    });
+    toast.success(`Preloaded ${repo.name}! Check details below.`);
+  };
+
+  const handleAddProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProject.title || !newProject.desc) {
+      toast.error("Please provide at least a title and description.");
+      return;
+    }
+    const projectToAdd: ProjectData = {
+      id: newProject.id || `project-${Date.now()}`,
+      title: newProject.title || "New Project",
+      subtitle: newProject.subtitle || "Side Project",
+      tech: newProject.tech || [],
+      desc: newProject.desc || "",
+      features: newProject.features || [],
+      link: newProject.link || "#",
+      featured: !!newProject.featured,
+    };
+    setPortfolioData({
+      ...portfolioData,
+      projects: [...portfolioData.projects, projectToAdd]
+    });
+    setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+    toast.success("Project added to list!");
+  };
+
+  const handleRemoveProject = (index: number) => {
+    const updatedProjects = [...portfolioData.projects];
+    updatedProjects.splice(index, 1);
+    setPortfolioData({ ...portfolioData, projects: updatedProjects });
+  };
+
+  // Certifications Handlers
+  const [newCert, setNewCert] = useState<CertificationData>({ name: "", org: "" });
+
+  const handleAddCert = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCert.name || !newCert.org) {
+      toast.error("Please fill in both certification name and issuing organization.");
+      return;
+    }
+    setPortfolioData({
+      ...portfolioData,
+      certifications: [...portfolioData.certifications, newCert]
+    });
+    setNewCert({ name: "", org: "" });
+    toast.success("Certification added!");
+  };
+
+  const handleRemoveCert = (index: number) => {
+    const updatedCerts = [...portfolioData.certifications];
+    updatedCerts.splice(index, 1);
+    setPortfolioData({ ...portfolioData, certifications: updatedCerts });
+  };
+
+  // Experience Handler
+  const [newExp, setNewExp] = useState<Partial<ExperienceData>>({
+    companyName: "", role: "", duration: "", location: "",
+    responsibilities: [], technologiesUsed: [], achievements: [],
+    projectsWorkedOn: [], skillsGained: []
+  });
+  const [expRespText, setExpRespText] = useState("");
+  const [expTechText, setExpTechText] = useState("");
+  const [expAchText, setExpAchText] = useState("");
+  const [expSkillsText, setExpSkillsText] = useState("");
+
+  const handleAddExperience = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newExp.companyName || !newExp.role) {
+      toast.error("Please provide at least a company name and role.");
+      return;
+    }
+    const expToAdd: ExperienceData = {
+      id: `exp-${Date.now()}`,
+      companyName: newExp.companyName || "New Company",
+      role: newExp.role || "Developer",
+      duration: newExp.duration || "Present",
+      location: newExp.location || "Remote",
+      responsibilities: expRespText.split("\n").map(r => r.trim()).filter(Boolean),
+      technologiesUsed: expTechText.split(",").map(t => t.trim()).filter(Boolean),
+      achievements: expAchText.split("\n").map(a => a.trim()).filter(Boolean),
+      projectsWorkedOn: [],
+      skillsGained: expSkillsText.split(",").map(s => s.trim()).filter(Boolean),
+    };
+    setPortfolioData({
+      ...portfolioData,
+      experience: [...(portfolioData.experience || []), expToAdd]
+    });
+    setNewExp({ companyName: "", role: "", duration: "", location: "" });
+    setExpRespText("");
+    setExpTechText("");
+    setExpAchText("");
+    setExpSkillsText("");
+    toast.success("Experience added!");
+  };
+
+  const handleRemoveExperience = (index: number) => {
+    const updated = [...(portfolioData.experience || [])];
+    updated.splice(index, 1);
+    setPortfolioData({ ...portfolioData, experience: updated });
+  };
+
+  // Education Handler
+  const [newEdu, setNewEdu] = useState<Partial<EducationData>>({
+    college: "", degree: "", department: "", duration: "", cgpa: "",
+    relevantCoursework: [], projects: [], achievements: [], activities: [], certificates: []
+  });
+  const [eduCoursesText, setEduCoursesText] = useState("");
+  const [eduProjText, setEduProjText] = useState("");
+  const [eduAchText, setEduAchText] = useState("");
+  const [eduActText, setEduActText] = useState("");
+  const [eduCertsText, setEduCertsText] = useState("");
+
+  const handleAddEducation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEdu.college || !newEdu.degree) {
+      toast.error("Please provide at least college name and degree.");
+      return;
+    }
+    const eduToAdd: EducationData = {
+      id: `edu-${Date.now()}`,
+      college: newEdu.college || "KIT",
+      degree: newEdu.degree || "B.Tech",
+      department: newEdu.department || "",
+      duration: newEdu.duration || "",
+      cgpa: newEdu.cgpa || "",
+      relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
+      projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
+      achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
+      activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
+      certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
+    };
+    setPortfolioData({
+      ...portfolioData,
+      education: [...(portfolioData.education || []), eduToAdd]
+    });
+    setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
+    setEduCoursesText("");
+    setEduProjText("");
+    setEduAchText("");
+    setEduActText("");
+    setEduCertsText("");
+    toast.success("Education added!");
+  };
+
+  const handleRemoveEducation = (index: number) => {
+    const updated = [...(portfolioData.education || [])];
+    updated.splice(index, 1);
+    setPortfolioData({ ...portfolioData, education: updated });
+  };
+
+  // Achievements Handler
+  const [newAch, setNewAch] = useState<Partial<AchievementItem>>({
+    title: "", organization: "", date: "", category: "Award", description: "", link: ""
+  });
+
+  const handleAddAchievement = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAch.title || !newAch.organization) {
+      toast.error("Please provide at least a title and organization.");
+      return;
+    }
+    const achToAdd: AchievementItem = {
+      id: `ach-${Date.now()}`,
+      title: newAch.title || "New Achievement",
+      organization: newAch.organization || "",
+      date: newAch.date || "",
+      category: newAch.category || "Award",
+      description: newAch.description || "",
+      link: newAch.link || ""
+    };
+    setPortfolioData({
+      ...portfolioData,
+      achievements: [...(portfolioData.achievements || []), achToAdd]
+    });
+    setNewAch({ title: "", organization: "", date: "", category: "Award", description: "", link: "" });
+    toast.success("Achievement added!");
+  };
+
+  const handleRemoveAchievement = (index: number) => {
+    const updated = [...(portfolioData.achievements || [])];
+    updated.splice(index, 1);
+    setPortfolioData({ ...portfolioData, achievements: updated });
+  };
+
+  // Resume & Contact Extra Updaters
+  const updateResume = (field: keyof ResumeData, value: string) => {
+    setPortfolioData({
+      ...portfolioData,
+      resume: {
+        ...portfolioData.resume,
+        [field]: value
+      }
+    });
+  };
+
+  const updateContactExtra = (field: keyof ContactExtraData, value: string) => {
+    setPortfolioData({
+      ...portfolioData,
+      contactExtra: {
+        ...portfolioData.contactExtra,
+        [field]: value
+      }
+    });
+  };
+
+  // LOGIN SCREEN
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+        <div className="w-full max-w-md p-8 rounded-2xl border border-border bg-card shadow-2xl relative overflow-hidden backdrop-blur-md">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 border border-primary/20">
+              <KeyRound className="text-primary" size={28} />
+            </div>
+            <h1 className="text-2xl font-bold font-serif text-foreground">Admin Access</h1>
+            <p className="text-muted-foreground text-sm mt-2">
+              Enter your passcode to unlock editing panels
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Passcode
+              </label>
+              <input
+                type="password"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                placeholder="Enter admin passcode"
+                className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 px-4 rounded-lg bg-primary text-primary-foreground font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            >
+              <Sparkles size={18} />
+              Unlock Panels
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
+
+            <button
+              onClick={() => navigate("/")}
+              className="hover:text-primary transition-colors flex items-center gap-1 font-medium"
+            >
+              <ArrowLeft size={12} /> Back to Portfolio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // MAIN DASHBOARD SCREEN
+  return (
+    <div className="min-h-screen bg-background text-foreground pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/")}
+              className="p-2 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors"
+              title="Back to Portfolio"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold font-serif flex items-center gap-2">
+                Portfolio Admin Panel <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Active</span>
+              </h1>
+              <p className="text-xs text-muted-foreground">Modify certificates, skills, projects & bio content</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive text-sm font-medium transition-colors"
+            >
+              Lock Panel
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm transition-opacity flex items-center gap-2 shadow-lg"
+            >
+              <Save size={16} />
+              Save Updates
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 mt-8 max-w-5xl">
+        <div className="grid md:grid-cols-4 gap-8">
+          {/* Navigation Tabs */}
+          <aside className="md:col-span-1 space-y-1">
+            <button
+              onClick={() => setActiveTab("hero")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "hero"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <User size={18} />
+              Hero & Contact
+            </button>
+            <button
+              onClick={() => setActiveTab("about")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "about"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <BookOpen size={18} />
+              About Bio
+            </button>
+            <button
+              onClick={() => setActiveTab("skills")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "skills"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Cpu size={18} />
+              Skills
+            </button>
+            <button
+              onClick={() => setActiveTab("projects")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "projects"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Briefcase size={18} />
+              Projects
+            </button>
+            <button
+              onClick={() => setActiveTab("certifications")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "certifications"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Award size={18} />
+              Certifications
+            </button>
+            <button
+              onClick={() => setActiveTab("experience")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "experience"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Briefcase size={18} />
+              Experience
+            </button>
+            <button
+              onClick={() => setActiveTab("education")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "education"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <GraduationCap size={18} />
+              Education
+            </button>
+            <button
+              onClick={() => setActiveTab("achievements")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "achievements"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Trophy size={18} />
+              Achievements
+            </button>
+            <button
+              onClick={() => setActiveTab("resume")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "resume"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <FileText size={18} />
+              Resume & Availability
+            </button>
+            <button
+              onClick={() => setActiveTab("security")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "security"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <KeyRound size={18} />
+              Security Settings
+            </button>
+          </aside>
+
+          {/* Form Content Area */}
+          <main className="md:col-span-3 bg-card rounded-2xl border border-border p-6 shadow-sm">
+            {/* HERO SECTION FORM */}
+            {activeTab === "hero" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Hero & Contact Info</h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">First Name</label>
+                    <input
+                      type="text"
+                      value={portfolioData.hero.name}
+                      onChange={(e) => updateHero("name", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Last Name</label>
+                    <input
+                      type="text"
+                      value={portfolioData.hero.lastName}
+                      onChange={(e) => updateHero("lastName", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Hero Subtitle / Description</label>
+                  <textarea
+                    value={portfolioData.hero.description}
+                    onChange={(e) => updateHero("description", e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground">Social & Contact Links</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">GitHub URL</label>
+                      <input
+                        type="url"
+                        value={portfolioData.hero.github}
+                        onChange={(e) => updateHero("github", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="https://github.com/..."
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">LinkedIn URL</label>
+                      <input
+                        type="url"
+                        value={portfolioData.hero.linkedin}
+                        onChange={(e) => updateHero("linkedin", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="https://linkedin.com/in/..."
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Email Address</label>
+                      <input
+                        type="email"
+                        value={portfolioData.hero.email}
+                        onChange={(e) => updateHero("email", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="name@example.com"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Phone Number</label>
+                      <input
+                        type="text"
+                        value={portfolioData.hero.phone || ""}
+                        onChange={(e) => updateHero("phone", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="+91-9500861022"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ABOUT SECTION FORM */}
+            {activeTab === "about" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">About Biography</h2>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bio Paragraph</label>
+                  <textarea
+                    value={portfolioData.about.bio}
+                    onChange={(e) => updateAboutBio(e.target.value)}
+                    rows={6}
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                  />
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground">Bio Details & Highlights</h3>
+                  <div className="grid gap-4">
+                    {portfolioData.about.highlights.map((highlight, index) => (
+                      <div key={highlight.title} className="p-4 rounded-xl bg-background border border-border space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold uppercase text-primary tracking-wider">{highlight.title}</span>
+                        </div>
+                        <div className="grid gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase text-muted-foreground">Highlight Name</label>
+                            <input
+                              type="text"
+                              value={highlight.title}
+                              onChange={(e) => updateAboutHighlight(index, "title", e.target.value)}
+                              className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase text-muted-foreground">Highlight Details (newlines supported)</label>
+                            <textarea
+                              value={highlight.desc}
+                              onChange={(e) => updateAboutHighlight(index, "desc", e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SKILLS SECTION FORM */}
+            {activeTab === "skills" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Skills Categories</h2>
+
+                {/* Add Category Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const input = form.elements.namedItem("categoryTitle") as HTMLInputElement;
+                    handleAddSkillCategory(input.value);
+                    input.value = "";
+                  }}
+                  className="flex gap-2 items-end bg-background p-4 rounded-xl border border-border"
+                >
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs text-muted-foreground">Create Skill Category</label>
+                    <input
+                      name="categoryTitle"
+                      type="text"
+                      placeholder="e.g. Cloud Platforms"
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:opacity-90 flex items-center gap-1.5"
+                  >
+                    <Plus size={16} /> Category
+                  </button>
+                </form>
+
+                <div className="space-y-6 mt-6">
+                  {portfolioData.skills.map((category, catIdx) => (
+                    <div key={category.title} className="p-4 rounded-xl bg-background border border-border space-y-4">
+                      <div className="flex justify-between items-center pb-2 border-b border-border">
+                        <h4 className="font-semibold text-foreground">{category.title}</h4>
+                        <button
+                          onClick={() => handleRemoveSkillCategory(catIdx)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          title="Delete Category"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* Display Skill Chips */}
+                      <div className="flex flex-wrap gap-2">
+                        {category.skills.map((skill, skillIdx) => (
+                          <span
+                            key={skill}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full bg-accent text-accent-foreground border border-border"
+                          >
+                            {skill}
+                            <button
+                              onClick={() => handleRemoveSkill(catIdx, skillIdx)}
+                              className="text-muted-foreground hover:text-destructive hover:scale-110 font-bold"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                        {category.skills.length === 0 && (
+                          <span className="text-xs text-muted-foreground">No skills added yet</span>
+                        )}
+                      </div>
+
+                      {/* Add Skill to Category */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const form = e.currentTarget;
+                          const input = form.elements.namedItem("skillName") as HTMLInputElement;
+                          handleAddSkill(catIdx, input.value);
+                          input.value = "";
+                        }}
+                        className="flex gap-2"
+                      >
+                        <input
+                          name="skillName"
+                          type="text"
+                          placeholder="Add skill (e.g. AWS)"
+                          className="flex-1 px-3 py-1 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          required
+                        />
+                        <button
+                          type="submit"
+                          className="px-3 py-1 bg-accent hover:border-primary border border-border text-foreground font-semibold text-xs rounded-lg transition-all"
+                        >
+                          Add
+                        </button>
+                      </form>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* PROJECTS SECTION FORM */}
+            {activeTab === "projects" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Projects</h2>
+
+                {/* GitHub Preloader Widget */}
+                <div className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Github size={18} className="text-primary" /> Fetch from GitHub
+                  </h3>
+                  <p className="text-xs text-muted-foreground font-sans">
+                    Enter your GitHub username to list your public repositories and click one to automatically preload the project form.
+                  </p>
+                  
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={ghUsername}
+                      onChange={(e) => setGhUsername(e.target.value)}
+                      placeholder="GitHub Username"
+                      className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={fetchGitHubRepos}
+                      disabled={isFetching}
+                      className="px-4 py-1.5 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {isFetching ? "Fetching..." : "Fetch Repos"}
+                    </button>
+                  </div>
+
+                  {ghRepos.length > 0 && (
+                    <div className="space-y-2 pt-2">
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground block">
+                        Select a Repository to Preload ({ghRepos.length} found)
+                      </label>
+                      <div className="max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border bg-card/50">
+                        {ghRepos.map((repo) => (
+                          <button
+                            key={repo.id}
+                            type="button"
+                            onClick={() => handlePreloadRepo(repo)}
+                            className="w-full text-left p-3 hover:bg-accent hover:text-accent-foreground transition-all flex justify-between items-start gap-4"
+                          >
+                            <div className="space-y-1">
+                              <span className="font-semibold text-xs text-foreground block">{repo.name}</span>
+                              {repo.description && (
+                                <p className="text-[10px] text-muted-foreground line-clamp-1">{repo.description}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {repo.language && (
+                                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-mono text-primary border border-primary/10">
+                                  {repo.language}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-muted-foreground">★ {repo.stargazers_count}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Add New Project Form */}
+                <div className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Plus size={18} className="text-primary" /> Add New Project
+                  </h3>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase text-muted-foreground">Project Title</label>
+                      <input
+                        type="text"
+                        value={newProject.title}
+                        onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                        placeholder="e.g. Portfolio Builder"
+                        className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase text-muted-foreground">Subtitle / Category</label>
+                      <input
+                        type="text"
+                        value={newProject.subtitle}
+                        onChange={(e) => setNewProject({ ...newProject, subtitle: e.target.value })}
+                        placeholder="e.g. Full-Stack Project"
+                        className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase text-muted-foreground">Description</label>
+                    <textarea
+                      value={newProject.desc}
+                      onChange={(e) => setNewProject({ ...newProject, desc: e.target.value })}
+                      placeholder="Brief project details..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {/* Tech List */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase text-muted-foreground">Tech Stack Tags</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={projectTechInput}
+                          onChange={(e) => setProjectTechInput(e.target.value)}
+                          placeholder="e.g. React.js"
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!projectTechInput.trim()) return;
+                            const currentTech = newProject.tech || [];
+                            setNewProject({ ...newProject, tech: [...currentTech, projectTechInput.trim()] });
+                            setProjectTechInput("");
+                          }}
+                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {(newProject.tech || []).map((t, idx) => (
+                          <span key={t} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                            {t}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = [...(newProject.tech || [])];
+                                list.splice(idx, 1);
+                                setNewProject({ ...newProject, tech: list });
+                              }}
+                              className="font-bold text-xs"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Features List */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase text-muted-foreground">Core Features Checklist</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={projectFeatureInput}
+                          onChange={(e) => setProjectFeatureInput(e.target.value)}
+                          placeholder="e.g. Authentication"
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!projectFeatureInput.trim()) return;
+                            const currentFeatures = newProject.features || [];
+                            setNewProject({ ...newProject, features: [...currentFeatures, projectFeatureInput.trim()] });
+                            setProjectFeatureInput("");
+                          }}
+                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="space-y-1">
+                        {(newProject.features || []).map((f, idx) => (
+                          <div key={f} className="text-[10px] text-muted-foreground flex items-center justify-between bg-card p-1 border border-border rounded">
+                            <span>• {f}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = [...(newProject.features || [])];
+                                list.splice(idx, 1);
+                                setNewProject({ ...newProject, features: list });
+                              }}
+                              className="text-destructive font-bold px-1"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase text-muted-foreground">Project Repository URL / Live Link</label>
+                    <input
+                      type="url"
+                      value={newProject.link}
+                      onChange={(e) => setNewProject({ ...newProject, link: e.target.value })}
+                      placeholder="https://github.com/..."
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 py-1">
+                    <input
+                      type="checkbox"
+                      id="projectFeatured"
+                      checked={!!newProject.featured}
+                      onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
+                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <label htmlFor="projectFeatured" className="text-xs text-muted-foreground cursor-pointer font-semibold">
+                      Featured Project (Show on Homepage)
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={handleAddProject}
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                  >
+                    <Plus size={16} /> Add Project to Portfolio
+                  </button>
+                </div>
+
+                {/* Projects List */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground">Current Projects ({portfolioData.projects.length})</h3>
+                  <div className="grid gap-3">
+                    {portfolioData.projects.map((proj, idx) => (
+                      <div key={proj.title + idx} className="p-4 rounded-xl bg-background border border-border flex justify-between items-center gap-4">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-foreground text-sm">{proj.title}</h4>
+                            {proj.featured && (
+                              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-mono text-primary font-semibold border border-primary/20">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground font-mono">{proj.subtitle}</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{proj.desc}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...portfolioData.projects];
+                              list[idx] = { ...list[idx], featured: !list[idx].featured };
+                              setPortfolioData({ ...portfolioData, projects: list });
+                            }}
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all ${
+                              proj.featured
+                                ? "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                                : "bg-muted text-muted-foreground border-border hover:bg-accent"
+                            }`}
+                          >
+                            {proj.featured ? "★ Featured" : "Standard"}
+                          </button>
+                          <button
+                            onClick={() => handleRemoveProject(idx)}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors shrink-0"
+                            title="Delete Project"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CERTIFICATIONS SECTION FORM */}
+            {activeTab === "certifications" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Certifications</h2>
+
+                {/* Add Certificate Form */}
+                <form onSubmit={handleAddCert} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Plus size={18} className="text-primary" /> Add Certification
+                  </h3>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Certification Name</label>
+                    <input
+                      type="text"
+                      value={newCert.name}
+                      onChange={(e) => setNewCert({ ...newCert, name: e.target.value })}
+                      placeholder="e.g. AWS Certified Solutions Architect"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Issuing Organization</label>
+                    <input
+                      type="text"
+                      value={newCert.org}
+                      onChange={(e) => setNewCert({ ...newCert, org: e.target.value })}
+                      placeholder="e.g. AWS Academy / Udemy"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                  >
+                    <Plus size={16} /> Add Certification
+                  </button>
+                </form>
+
+                {/* Certificates List */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground font-serif">Current Certifications ({portfolioData.certifications.length})</h3>
+                  <div className="grid gap-2">
+                    {portfolioData.certifications.map((c, idx) => (
+                      <div key={c.name + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
+                        <div>
+                          <span className="font-medium text-foreground text-sm block">{c.name}</span>
+                          <span className="text-xs text-muted-foreground">{c.org}</span>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveCert(idx)}
+                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                          title="Delete Certificate"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* EXPERIENCE TAB FORM */}
+            {activeTab === "experience" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Experience</h2>
+
+                <form onSubmit={handleAddExperience} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Plus size={18} className="text-primary" /> Add Experience Item
+                  </h3>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Company Name</label>
+                      <input
+                        type="text"
+                        value={newExp.companyName}
+                        onChange={(e) => setNewExp({ ...newExp, companyName: e.target.value })}
+                        placeholder="e.g. Acme Labs"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Role / Position</label>
+                      <input
+                        type="text"
+                        value={newExp.role}
+                        onChange={(e) => setNewExp({ ...newExp, role: e.target.value })}
+                        placeholder="e.g. Intern Developer"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Duration</label>
+                      <input
+                        type="text"
+                        value={newExp.duration}
+                        onChange={(e) => setNewExp({ ...newExp, duration: e.target.value })}
+                        placeholder="e.g. Jan 2025 - Present"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Location</label>
+                      <input
+                        type="text"
+                        value={newExp.location}
+                        onChange={(e) => setNewExp({ ...newExp, location: e.target.value })}
+                        placeholder="e.g. Coimbatore, Remote"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Responsibilities (one per line)</label>
+                    <textarea
+                      value={expRespText}
+                      onChange={(e) => setExpRespText(e.target.value)}
+                      placeholder="Designed core Spring Boot controllers...&#10;Integrated React views..."
+                      rows={3}
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Key Achievements (one per line)</label>
+                    <textarea
+                      value={expAchText}
+                      onChange={(e) => setExpAchText(e.target.value)}
+                      placeholder="Reduced page latency by 30%...&#10;Secured databases schema authorization rules..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Technologies (comma separated)</label>
+                      <input
+                        type="text"
+                        value={expTechText}
+                        onChange={(e) => setExpTechText(e.target.value)}
+                        placeholder="Java, Spring Boot, React"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Skills Gained (comma separated)</label>
+                      <input
+                        type="text"
+                        value={expSkillsText}
+                        onChange={(e) => setExpSkillsText(e.target.value)}
+                        placeholder="REST APIs, Clean Code, Git workflows"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1"
+                  >
+                    <Plus size={14} /> Add Experience Item
+                  </button>
+                </form>
+
+                {/* List items */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground font-serif">Logged Experiences ({(portfolioData.experience || []).length})</h3>
+                  <div className="grid gap-2">
+                    {(portfolioData.experience || []).map((exp, idx) => (
+                      <div key={exp.companyName + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
+                        <div>
+                          <span className="font-medium text-foreground text-sm block">{exp.role}</span>
+                          <span className="text-xs text-muted-foreground">{exp.companyName} | {exp.duration}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExperience(idx)}
+                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                          title="Delete Experience"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* EDUCATION TAB FORM */}
+            {activeTab === "education" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Education</h2>
+
+                <form onSubmit={handleAddEducation} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Plus size={18} className="text-primary" /> Add Education Institution
+                  </h3>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">College / University</label>
+                      <input
+                        type="text"
+                        value={newEdu.college}
+                        onChange={(e) => setNewEdu({ ...newEdu, college: e.target.value })}
+                        placeholder="e.g. Karpagam Institute of Tech"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Degree & Branch</label>
+                      <input
+                        type="text"
+                        value={newEdu.degree}
+                        onChange={(e) => setNewEdu({ ...newEdu, degree: e.target.value })}
+                        placeholder="e.g. B.Tech IT"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Department</label>
+                      <input
+                        type="text"
+                        value={newEdu.department}
+                        onChange={(e) => setNewEdu({ ...newEdu, department: e.target.value })}
+                        placeholder="Information Technology"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Duration</label>
+                      <input
+                        type="text"
+                        value={newEdu.duration}
+                        onChange={(e) => setNewEdu({ ...newEdu, duration: e.target.value })}
+                        placeholder="e.g. 2023 - 2027"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">CGPA / Percentage</label>
+                      <input
+                        type="text"
+                        value={newEdu.cgpa}
+                        onChange={(e) => setNewEdu({ ...newEdu, cgpa: e.target.value })}
+                        placeholder="e.g. 8.2 / 10.0"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Coursework (comma separated)</label>
+                    <input
+                      type="text"
+                      value={eduCoursesText}
+                      onChange={(e) => setEduCoursesText(e.target.value)}
+                      placeholder="Data Structures, DBMS, Java OOP"
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Key Achievements (one per line)</label>
+                    <textarea
+                      value={eduAchText}
+                      onChange={(e) => setEduAchText(e.target.value)}
+                      placeholder="Ranked top 10% of the class...&#10;Coding Club coordinator..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Academic Projects (comma separated)</label>
+                      <input
+                        type="text"
+                        value={eduProjText}
+                        onChange={(e) => setEduProjText(e.target.value)}
+                        placeholder="ERP portal, Guess Game"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Activities (comma separated)</label>
+                      <input
+                        type="text"
+                        value={eduActText}
+                        onChange={(e) => setEduActText(e.target.value)}
+                        placeholder="Coding Club, Symposium organizer"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Certificates (comma separated)</label>
+                      <input
+                        type="text"
+                        value={eduCertsText}
+                        onChange={(e) => setEduCertsText(e.target.value)}
+                        placeholder="AWS Academy, Java great learning"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1"
+                  >
+                    <Plus size={14} /> Add Education Record
+                  </button>
+                </form>
+
+                {/* Logged Education records */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground font-serif">Logged Education ({(portfolioData.education || []).length})</h3>
+                  <div className="grid gap-2">
+                    {(portfolioData.education || []).map((edu, idx) => (
+                      <div key={edu.college + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
+                        <div>
+                          <span className="font-medium text-foreground text-sm block">{edu.college}</span>
+                          <span className="text-xs text-muted-foreground">{edu.degree} | {edu.duration}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEducation(idx)}
+                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                          title="Delete Record"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACHIEVEMENTS TAB FORM */}
+            {activeTab === "achievements" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Achievements</h2>
+
+                <form onSubmit={handleAddAchievement} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    <Plus size={18} className="text-primary" /> Add Achievement / Honor
+                  </h3>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Title</label>
+                      <input
+                        type="text"
+                        value={newAch.title}
+                        onChange={(e) => setNewAch({ ...newAch, title: e.target.value })}
+                        placeholder="e.g. Smart India Hackathon Finalist"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Issuing Organization</label>
+                      <input
+                        type="text"
+                        value={newAch.organization}
+                        onChange={(e) => setNewAch({ ...newAch, organization: e.target.value })}
+                        placeholder="e.g. Karpagam Institute of Tech"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Date / Period</label>
+                      <input
+                        type="text"
+                        value={newAch.date}
+                        onChange={(e) => setNewAch({ ...newAch, date: e.target.value })}
+                        placeholder="e.g. Sep 2024"
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Category</label>
+                      <select
+                        value={newAch.category}
+                        onChange={(e) => setNewAch({ ...newAch, category: e.target.value as AchievementItem["category"] })}
+                        className="w-full px-3 py-2 text-xs rounded-lg border border-border bg-card text-foreground"
+                      >
+                        <option value="Award">Award</option>
+                        <option value="Hackathon">Hackathon</option>
+                        <option value="Contest">Contest</option>
+                        <option value="Contribution">Contribution</option>
+                        <option value="Leadership">Leadership</option>
+                        <option value="Volunteer">Volunteer</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Description</label>
+                    <textarea
+                      value={newAch.description}
+                      onChange={(e) => setNewAch({ ...newAch, description: e.target.value })}
+                      placeholder="Brief details about the reward or your role..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">Reference Link / Proof URL (Optional)</label>
+                    <input
+                      type="url"
+                      value={newAch.link}
+                      onChange={(e) => setNewAch({ ...newAch, link: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1"
+                  >
+                    <Plus size={14} /> Add Achievement
+                  </button>
+                </form>
+
+                {/* Logged Achievements */}
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground font-serif">Current Achievements ({(portfolioData.achievements || []).length})</h3>
+                  <div className="grid gap-2">
+                    {(portfolioData.achievements || []).map((ach, idx) => (
+                      <div key={ach.title + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
+                        <div>
+                          <span className="font-medium text-foreground text-sm block">{ach.title}</span>
+                          <span className="text-xs text-muted-foreground">{ach.category} | {ach.organization}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAchievement(idx)}
+                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                          title="Delete Achievement"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* RESUME & AVAILABILITY TAB FORM */}
+            {activeTab === "resume" && (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Resume & Availability</h2>
+
+                {/* Resume URLs */}
+                <div className="space-y-4 p-4 rounded-xl bg-background border border-border">
+                  <h3 className="font-semibold text-foreground font-serif text-sm">Resume Settings</h3>
+                  <div className="space-y-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Resume PDF URL Path (Relative or Absolute)</label>
+                      <input
+                        type="text"
+                        value={portfolioData.resume?.resumeUrl || ""}
+                        onChange={(e) => updateResume("resumeUrl", e.target.value)}
+                        placeholder="/Portfolio/resume.pdf"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold font-semibold">ATS Plain-Text Resume Content</label>
+                      <textarea
+                        value={portfolioData.resume?.atsContent || ""}
+                        onChange={(e) => updateResume("atsContent", e.target.value)}
+                        placeholder="Paste plain text resume summary..."
+                        rows={10}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground font-mono text-[10px] leading-relaxed"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Extra details */}
+                <div className="space-y-4 p-4 rounded-xl bg-background border border-border">
+                  <h3 className="font-semibold text-foreground font-serif text-sm">Availability Settings</h3>
+                  <div className="grid sm:grid-cols-3 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Availability Status</label>
+                      <input
+                        type="text"
+                        value={portfolioData.contactExtra?.availability || ""}
+                        onChange={(e) => updateContactExtra("availability", e.target.value)}
+                        placeholder="Open to roles..."
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Response Speed</label>
+                      <input
+                        type="text"
+                        value={portfolioData.contactExtra?.responseTime || ""}
+                        onChange={(e) => updateContactExtra("responseTime", e.target.value)}
+                        placeholder="Within 24 hours..."
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Location / Relocation</label>
+                      <input
+                        type="text"
+                        value={portfolioData.contactExtra?.location || ""}
+                        onChange={(e) => updateContactExtra("location", e.target.value)}
+                        placeholder="Coimbatore, Tamil Nadu..."
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SECURITY TAB FORM */}
+            {activeTab === "security" && (
+              <form onSubmit={handlePasswordChange} className="space-y-6">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Security Settings</h2>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current Passcode</label>
+                  <input
+                    type="password"
+                    value={currentPass}
+                    onChange={(e) => setCurrentPass(e.target.value)}
+                    placeholder="Enter current passcode"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">New Passcode</label>
+                  <input
+                    type="password"
+                    value={newPass}
+                    onChange={(e) => setNewPass(e.target.value)}
+                    placeholder="Enter new passcode (min. 6 characters)"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Confirm New Passcode</label>
+                  <input
+                    type="password"
+                    value={confirmPass}
+                    onChange={(e) => setConfirmPass(e.target.value)}
+                    placeholder="Confirm new passcode"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Update Passcode
+                </button>
+              </form>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Admin;

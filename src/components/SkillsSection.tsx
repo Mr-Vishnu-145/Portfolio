@@ -1,30 +1,18 @@
+import { useState, useEffect } from "react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-
-const skillCategories = [
-  {
-    title: "Languages",
-    skills: ["Java", "Python", "C",  "JavaScript"],
-  },
-  {
-    title: "Frontend",
-    skills: ["React.js", "HTML", "CSS", ],
-  },
-  {
-    title: "Backend",
-    skills: ["Spring Boot", "REST APIs", "MVC Architecture"],
-  },
-  {
-    title: "Database & Tools",
-    skills: ["MySQL", "Git", "GitHub", "VS Code", "MySQL Workbench"],
-  },
-  {
-    title: "Concepts",
-    skills: ["OOPs", "Data Structures", "CRUD Operations"],
-  },
-];
+import { getPortfolioData, SkillCategory } from "@/lib/portfolioData";
 
 const SkillsSection = () => {
   const { ref, isVisible } = useScrollAnimation();
+  const [categories, setCategories] = useState<SkillCategory[]>(() => getPortfolioData().skills);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCategories(getPortfolioData().skills);
+    };
+    window.addEventListener("portfolioDataUpdate", handleUpdate);
+    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
+  }, []);
 
   return (
     <section id="skills" className="py-24">
@@ -35,7 +23,7 @@ const SkillsSection = () => {
         <div className="w-16 h-1 bg-primary mx-auto rounded-full mb-12" />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {skillCategories.map((cat, i) => (
+          {categories.map((cat, i) => (
             <div
               key={cat.title}
               className={`p-6 rounded-xl border border-border bg-card hover:border-primary transition-all duration-500 hover:shadow-lg ${isVisible ? "animate-scale-in" : "opacity-0"}`}
