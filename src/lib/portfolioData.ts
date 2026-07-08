@@ -136,6 +136,18 @@ export interface ContactExtraData {
   location: string;
 }
 
+export interface SectionVisibility {
+  about: boolean;
+  skills: boolean;
+  projects: boolean;
+  certifications: boolean;
+  experience: boolean;
+  education: boolean;
+  achievements: boolean;
+  resume: boolean;
+  contact: boolean;
+}
+
 export interface PortfolioData {
   hero: HeroData;
   about: AboutData;
@@ -147,9 +159,35 @@ export interface PortfolioData {
   achievements: AchievementItem[];
   resume: ResumeData;
   contactExtra: ContactExtraData;
+  sectionVisibility?: SectionVisibility;
 }
 
+export const getSectionVisibility = (data: PortfolioData): SectionVisibility => {
+  return data.sectionVisibility || {
+    about: true,
+    skills: true,
+    projects: true,
+    certifications: true,
+    experience: true,
+    education: true,
+    achievements: true,
+    resume: true,
+    contact: true,
+  };
+};
+
 export const defaultPortfolioData: PortfolioData = {
+  sectionVisibility: {
+    about: true,
+    skills: true,
+    projects: true,
+    certifications: true,
+    experience: true,
+    education: true,
+    achievements: true,
+    resume: true,
+    contact: true,
+  },
   hero: {
     name: "Vishnu",
     lastName: "V",

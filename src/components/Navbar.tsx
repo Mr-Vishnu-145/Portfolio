@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Menu, X, Sun, Moon, Download, ChevronDown } from "lucide-react";
 import { NavLink, Link } from "react-router-dom";
+import { usePortfolioStore } from "@/store/usePortfolioStore";
+import { getSectionVisibility } from "@/lib/portfolioData";
 
 const primaryLinks = [
   { label: "Home", href: "/" },
@@ -23,6 +25,30 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLLIElement>(null);
+
+  const storeData = usePortfolioStore((state) => state.data);
+  const visibility = getSectionVisibility(storeData);
+
+  // Filter links dynamically
+  const filteredPrimary = primaryLinks.filter((link) => {
+    if (link.href === "/") return true;
+    if (link.href === "/about") return visibility.about;
+    if (link.href === "/skills") return visibility.skills;
+    if (link.href === "/projects") return visibility.projects;
+    if (link.href === "/certifications") return visibility.certifications;
+    if (link.href === "/contact") return visibility.contact;
+    return true;
+  });
+
+  const filteredSecondary = secondaryLinks.filter((link) => {
+    if (link.href === "/experience") return visibility.experience;
+    if (link.href === "/education") return visibility.education;
+    if (link.href === "/achievements") return visibility.achievements;
+    if (link.href === "/resume") return visibility.resume;
+    return true;
+  });
+
+  const hasSecondary = filteredSecondary.length > 0;
   
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
@@ -102,7 +128,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation Links */}
         <ul className="hidden lg:flex items-center gap-7">
-          {primaryLinks.map((link) => (
+          {filteredPrimary.map((link) => (
             <li key={link.href}>
               <NavLink
                 to={link.href}
@@ -120,38 +146,40 @@ const Navbar = () => {
           ))}
 
           {/* More Dropdown */}
-          <li className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className={`flex items-center gap-1 text-sm font-semibold transition-all duration-300 ${
-                dropdownOpen || secondaryLinks.some(l => window.location.pathname.endsWith(l.href))
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-primary"
-              }`}
-            >
-              More
-              <ChevronDown size={14} className={`transition-transform duration-300 ${dropdownOpen ? "rotate-180" : ""}`} />
-            </button>
+          {hasSecondary && (
+            <li className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className={`flex items-center gap-1 text-sm font-semibold transition-all duration-300 ${
+                  dropdownOpen || filteredSecondary.some(l => window.location.pathname.endsWith(l.href))
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-primary"
+                }`}
+              >
+                More
+                <ChevronDown size={14} className={`transition-transform duration-300 ${dropdownOpen ? "rotate-180" : ""}`} />
+              </button>
 
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-3 w-44 rounded-xl border border-border bg-card shadow-lg p-2 animate-fade-in z-50">
-                {secondaryLinks.map((link) => (
-                  <NavLink
-                    key={link.href}
-                    to={link.href}
-                    onClick={() => setDropdownOpen(false)}
-                    className={({ isActive }) =>
-                      `block px-4 py-2 rounded-lg text-xs font-semibold hover:bg-accent hover:text-primary transition-all ${
-                        isActive ? "text-primary bg-accent/50" : "text-muted-foreground"
-                      }`
-                    }
-                  >
-                    {link.label}
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </li>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-3 w-44 rounded-xl border border-border bg-card shadow-lg p-2 animate-fade-in z-50">
+                  {filteredSecondary.map((link) => (
+                    <NavLink
+                      key={link.href}
+                      to={link.href}
+                      onClick={() => setDropdownOpen(false)}
+                      className={({ isActive }) =>
+                        `block px-4 py-2 rounded-lg text-xs font-semibold hover:bg-accent hover:text-primary transition-all ${
+                          isActive ? "text-primary bg-accent/50" : "text-muted-foreground"
+                        }`
+                      }
+                    >
+                      {link.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </li>
+          )}
         </ul>
 
         {/* CTA & Theme Button */}
@@ -164,20 +192,24 @@ const Navbar = () => {
             {dark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           
-          <Link
-            to="/resume"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-foreground font-semibold text-xs hover:border-primary hover:text-primary transition-all bg-background/50"
-          >
-            <Download size={14} />
-            Resume
-          </Link>
+          {visibility.resume && (
+            <Link
+              to="/resume"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border text-foreground font-semibold text-xs hover:border-primary hover:text-primary transition-all bg-background/50"
+            >
+              <Download size={14} />
+              Resume
+            </Link>
+          )}
           
-          <Link
-            to="/contact"
-            className="inline-flex items-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:opacity-95 transition-opacity shadow-sm"
-          >
-            Hire Me
-          </Link>
+          {visibility.contact && (
+            <Link
+              to="/contact"
+              className="inline-flex items-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:opacity-95 transition-opacity shadow-sm"
+            >
+              Hire Me
+            </Link>
+          )}
         </div>
 
         {/* Mobile controls */}
@@ -204,7 +236,7 @@ const Navbar = () => {
         <div className="lg:hidden bg-card/95 backdrop-blur-md border-t border-border mt-3 animate-fade-in">
           <ul className="flex flex-col items-center gap-4 py-6 text-sm">
             {/* Primary & Secondary unified */}
-            {[...primaryLinks, ...secondaryLinks].map((link) => (
+            {[...filteredPrimary, ...filteredSecondary].map((link) => (
               <li key={link.href} className="w-full text-center">
                 <NavLink
                   to={link.href}
@@ -221,24 +253,28 @@ const Navbar = () => {
             ))}
             
             <li className="pt-4 border-t border-border w-1/2 flex justify-center gap-3">
-              <a
-                href={`${import.meta.env.BASE_URL}resume.pdf`}
-                download="Vishnu_Resume.pdf"
-                onClick={(e) => {
-                  setMobileOpen(false);
-                  handleDownloadResume(e);
-                }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-foreground font-semibold text-xs bg-background"
-              >
-                <Download size={13} /> PDF
-              </a>
-              <Link
-                to="/contact"
-                className="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-xs"
-                onClick={() => setMobileOpen(false)}
-              >
-                Hire Me
-              </Link>
+              {visibility.resume && (
+                <a
+                  href={`${import.meta.env.BASE_URL}resume.pdf`}
+                  download="Vishnu_Resume.pdf"
+                  onClick={(e) => {
+                    setMobileOpen(false);
+                    handleDownloadResume(e);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-foreground font-semibold text-xs bg-background"
+                >
+                  <Download size={13} /> PDF
+                </a>
+              )}
+              {visibility.contact && (
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-xs"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Hire Me
+                </Link>
+              )}
             </li>
           </ul>
         </div>

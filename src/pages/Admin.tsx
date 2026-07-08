@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
-  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare
+  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPortfolioData, savePortfolioData, PortfolioData,
   ProjectData, CertificationData, SkillCategory, AboutHighlight,
-  ExperienceData, EducationData, AchievementItem, ResumeData, ContactExtraData
+  ExperienceData, EducationData, AchievementItem, ResumeData, ContactExtraData,
+  getSectionVisibility, SectionVisibility
 } from "@/lib/portfolioData";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 import { useGitHubRepos } from "@/hooks/useGitHubRepos";
@@ -41,7 +42,7 @@ const Admin = () => {
 
   const storeData = usePortfolioStore((state) => state.data);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
-  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "security">("hero");
+  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "visibility" | "security">("hero");
 
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
@@ -113,6 +114,21 @@ const Admin = () => {
       console.error(err);
       toast.error("Error deleting message.");
     }
+  };
+
+  const visibility = getSectionVisibility(portfolioData);
+
+  const handleToggleSection = (section: keyof SectionVisibility) => {
+    const currentVis = getSectionVisibility(portfolioData);
+    const updatedVis = {
+      ...currentVis,
+      [section]: !currentVis[section]
+    };
+    setPortfolioData({
+      ...portfolioData,
+      sectionVisibility: updatedVis
+    });
+    toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} section visibility updated!`);
   };
 
   useEffect(() => {
@@ -740,6 +756,16 @@ const Admin = () => {
                   {messages.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setActiveTab("visibility")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium text-sm transition-all ${activeTab === "visibility"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <Sliders size={18} />
+              Section Visibility
             </button>
             <button
               onClick={() => setActiveTab("security")}
@@ -1915,6 +1941,44 @@ const Admin = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* SECTION VISIBILITY TAB */}
+            {activeTab === "visibility" && (
+              <div className="space-y-6">
+                <div className="pb-3 border-b border-border">
+                  <h2 className="text-xl font-bold font-serif">Section Visibility Settings</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Control which sections are displayed in the main navigation menu and on the portfolio homepage.</p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {(Object.keys(visibility) as Array<keyof SectionVisibility>).map((sec) => (
+                    <div
+                      key={sec}
+                      onClick={() => handleToggleSection(sec)}
+                      className={`p-4 rounded-xl border transition-all duration-300 cursor-pointer flex items-center justify-between group ${
+                        visibility[sec]
+                          ? "bg-primary/5 border-primary shadow-sm"
+                          : "bg-card border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <div>
+                        <h4 className="font-bold text-sm capitalize">{sec} Section</h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {visibility[sec] ? "Currently visible on portfolio" : "Currently hidden from portfolio"}
+                        </p>
+                      </div>
+                      <div className={`w-10 h-6 rounded-full p-0.5 transition-colors duration-300 shrink-0 ${
+                        visibility[sec] ? "bg-primary" : "bg-muted"
+                      }`}>
+                        <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-300 ${
+                          visibility[sec] ? "translate-x-4" : "translate-x-0"
+                        }`} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </main>
