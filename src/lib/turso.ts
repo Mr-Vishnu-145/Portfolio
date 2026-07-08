@@ -1,6 +1,15 @@
 import { createClient } from "@libsql/client/web";
 import { PortfolioData, defaultPortfolioData } from "./portfolioData";
 
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  created_at: string;
+}
+
 const dbUrl = import.meta.env.VITE_TURSO_DATABASE_URL || "libsql://database-mr-vishnu-145.aws-ap-south-1.turso.io";
 const dbToken = import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
 
@@ -23,7 +32,7 @@ const client = createClient({
 let isDbInitialized = false;
 
 /**
- * Initializes the portfolio_data table and inserts the default portfolio data if empty
+ * Initializes the database tables
  */
 export const initDatabase = async (): Promise<void> => {
   if (!dbToken) {
@@ -41,7 +50,19 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
-    // Check if initial row exists
+    // Create the contact messages table
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        subject TEXT,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Check if initial row exists in portfolio_data
     const result = await client.execute("SELECT COUNT(*) as cnt FROM portfolio_data");
     const count = Number(result.rows[0]?.cnt ?? 0);
     
@@ -95,6 +116,119 @@ export const savePortfolioToDb = async (data: PortfolioData): Promise<boolean> =
     return true;
   } catch (error) {
     console.error("Error saving portfolio to Turso DB:", error);
+    return false;
+  }
+};
+
+/**
+ * Saves a contact message to the Turso database or fallback localStorage
+ */
+export const saveContactMessage = async (
+  name: string,
+  email: string,
+  subject: string,
+  message: string
+): Promise<boolean> => {
+  if (!isTursoActive) {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("contact_messages") || "[]";
+        const messages = JSON.parse(stored);
+        const newMsg = {
+          id: Date.now(),
+          name,
+          email,
+          subject,
+          message,
+          created_at: new Date().toISOString()
+        };
+        messages.push(newMsg);
+        localStorage.setItem("contact_messages", JSON.stringify(messages));
+        window.dispatchEvent(new Event("contactMessagesUpdate"));
+        return true;
+      } catch (error) {
+        console.error("Failed to save contact message to localStorage:", error);
+      }
+    }
+    return false;
+  }
+
+  try {
+    await initDatabase();
+    await client.execute({
+      sql: "INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)",
+      args: [name, email, subject, message],
+    });
+    return true;
+  } catch (error) {
+    console.error("Error saving contact message to Turso DB:", error);
+    return false;
+  }
+};
+
+/**
+ * Fetches all contact messages from the database or fallback localStorage
+ */
+export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
+  if (!isTursoActive) {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("contact_messages") || "[]";
+        const messages = JSON.parse(stored) as ContactMessage[];
+        return [...messages].reverse(); // newest first
+      } catch (error) {
+        console.error("Failed to fetch contact messages from localStorage:", error);
+      }
+    }
+    return [];
+  }
+
+  try {
+    await initDatabase();
+    const result = await client.execute("SELECT * FROM contact_messages ORDER BY created_at DESC");
+    return result.rows.map((row) => ({
+      id: Number(row.id),
+      name: row.name as string,
+      email: row.email as string,
+      subject: row.subject as string,
+      message: row.message as string,
+      created_at: row.created_at as string,
+    })) as ContactMessage[];
+  } catch (error) {
+    console.error("Error fetching contact messages from Turso DB:", error);
+    return [];
+  }
+};
+
+/**
+ * Deletes a contact message by ID
+ */
+export const deleteContactMessage = async (id: number): Promise<boolean> => {
+  if (!isTursoActive) {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("contact_messages") || "[]";
+        const messages = JSON.parse(stored) as ContactMessage[];
+        const filtered = messages.filter((m) => m.id !== id);
+        localStorage.setItem("contact_messages", JSON.stringify(filtered));
+        window.dispatchEvent(new Event("contactMessagesUpdate"));
+        return true;
+      } catch (error) {
+        console.error("Failed to delete contact message from localStorage:", error);
+      }
+    }
+    return false;
+  }
+
+  try {
+    await initDatabase();
+    await client.execute({
+      sql: "DELETE FROM contact_messages WHERE id = ?",
+      args: [id],
+    });
+    return true;
+  } catch (error) {
+    console.error("Error deleting contact message from Turso DB:", error);
     return false;
   }
 };

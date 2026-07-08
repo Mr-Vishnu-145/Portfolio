@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
-  GraduationCap, Trophy, FileText, Github
+  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/lib/portfolioData";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 import { useGitHubRepos } from "@/hooks/useGitHubRepos";
+import { fetchContactMessages, deleteContactMessage, isTursoActive, ContactMessage } from "@/lib/turso";
 
 const hashPassword = async (password: string): Promise<string> => {
   const msgBuffer = new TextEncoder().encode(password);
@@ -40,7 +41,79 @@ const Admin = () => {
 
   const storeData = usePortfolioStore((state) => state.data);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
-  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "security">("hero");
+  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "security">("hero");
+
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme");
+      if (saved) return saved === "dark";
+      return true; // default to dark mode
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [dark]);
+
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [isFetchingMessages, setIsFetchingMessages] = useState(false);
+
+  const loadMessages = async () => {
+    setIsFetchingMessages(true);
+    try {
+      const list = await fetchContactMessages();
+      setMessages(list);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMessages();
+
+    // Setup polling for messages if Turso is active
+    const interval = isTursoActive
+      ? setInterval(() => {
+          loadMessages();
+        }, 10000)
+      : undefined;
+
+    // Setup local storage listener fallback for messages
+    const handleMessagesUpdate = () => {
+      loadMessages();
+    };
+    window.addEventListener("contactMessagesUpdate", handleMessagesUpdate);
+
+    return () => {
+      if (interval) clearInterval(interval);
+      window.removeEventListener("contactMessagesUpdate", handleMessagesUpdate);
+    };
+  }, []);
+
+  const handleDeleteMessage = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    try {
+      const success = await deleteContactMessage(id);
+      if (success) {
+        toast.success("Message deleted successfully.");
+        loadMessages();
+      } else {
+        toast.error("Failed to delete message.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error deleting message.");
+    }
+  };
 
   useEffect(() => {
     setPortfolioData(storeData);
@@ -273,7 +346,7 @@ const Admin = () => {
   };
 
   // Certifications Handlers
-  const [newCert, setNewCert] = useState<CertificationData>({ name: "", org: "" });
+  const [newCert, setNewCert] = useState<Partial<CertificationData>>({ name: "", org: "" });
 
   const handleAddCert = (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,9 +354,14 @@ const Admin = () => {
       toast.error("Please fill in both certification name and issuing organization.");
       return;
     }
+    const certToAdd: CertificationData = {
+      id: `cert-${Date.now()}`,
+      name: newCert.name,
+      org: newCert.org,
+    };
     setPortfolioData({
       ...portfolioData,
-      certifications: [...portfolioData.certifications, newCert]
+      certifications: [...portfolioData.certifications, certToAdd]
     });
     setNewCert({ name: "", org: "" });
     toast.success("Certification added!");
@@ -525,6 +603,13 @@ const Admin = () => {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setDark(!dark)}
+              className="p-2.5 rounded-lg border border-border text-foreground hover:text-primary hover:border-primary transition-all duration-300 bg-background/50"
+              aria-label="Toggle theme"
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
               onClick={handleLogout}
               className="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive text-sm font-medium transition-colors"
             >
@@ -634,6 +719,27 @@ const Admin = () => {
             >
               <FileText size={18} />
               Resume & Availability
+            </button>
+            <button
+              onClick={() => setActiveTab("messages")}
+              className={`w-full text-left px-4 py-3 rounded-xl flex items-center justify-between font-medium text-sm transition-all ${activeTab === "messages"
+                ? "bg-primary text-primary-foreground shadow-md"
+                : "bg-card hover:bg-accent hover:text-foreground text-muted-foreground"
+                }`}
+            >
+              <div className="flex items-center gap-3">
+                <MessageSquare size={18} />
+                Contact Messages
+              </div>
+              {messages.length > 0 && (
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                  activeTab === "messages"
+                    ? "bg-primary-foreground text-primary"
+                    : "bg-primary text-primary-foreground"
+                }`}>
+                  {messages.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab("security")}
@@ -1748,6 +1854,68 @@ const Admin = () => {
                   Update Passcode
                 </button>
               </form>
+            )}
+
+            {/* MESSAGES TAB */}
+            {activeTab === "messages" && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center pb-3 border-b border-border">
+                  <h2 className="text-xl font-bold font-serif">Contact Messages</h2>
+                  <button
+                    onClick={loadMessages}
+                    disabled={isFetchingMessages}
+                    className="text-xs text-primary hover:underline font-semibold disabled:opacity-50"
+                  >
+                    {isFetchingMessages ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
+
+                {messages.length === 0 ? (
+                  <div className="text-center py-12 border border-dashed border-border rounded-xl">
+                    <p className="text-muted-foreground text-sm">No messages received yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((msg) => (
+                      <div key={msg.id} className="p-5 rounded-xl border border-border bg-card shadow-sm space-y-3 relative group">
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <h4 className="font-bold text-foreground text-sm">{msg.name}</h4>
+                            <a
+                              href={`mailto:${msg.email}`}
+                              className="text-xs text-primary hover:underline font-semibold"
+                            >
+                              {msg.email}
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {new Date(msg.created_at).toLocaleString()}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="p-1 text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10"
+                              title="Delete Message"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {msg.subject && (
+                          <div className="text-xs font-semibold text-foreground bg-accent/50 px-2.5 py-1 rounded-md inline-block">
+                            Subject: {msg.subject}
+                          </div>
+                        )}
+
+                        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {msg.message}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </main>
         </div>

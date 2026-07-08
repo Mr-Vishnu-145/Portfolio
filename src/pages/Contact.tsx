@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { getPortfolioData, ContactExtraData, HeroData } from "@/lib/portfolioData";
-import { Mail, Phone, MapPin, Send, MessageSquare, Clock, Globe, Github, LinkedIn } from "lucide-react";
+import { Mail, Phone, MapPin, Send, MessageSquare, Clock, Globe, Github } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { saveContactMessage } from "@/lib/turso";
 
 const Contact = () => {
   const [hero, setHero] = useState<HeroData>(() => getPortfolioData().hero);
@@ -27,7 +28,7 @@ const Contact = () => {
     return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
       toast.error("Please fill in all required fields.");
@@ -36,15 +37,23 @@ const Contact = () => {
     
     setIsSubmitting(true);
     
-    // Simulate API request
-    setTimeout(() => {
+    try {
+      const success = await saveContactMessage(name, email, subject, message);
+      if (success) {
+        toast.success("Thank you! Your message has been sent successfully.");
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+      } else {
+        toast.error("Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to send message.");
+    } finally {
       setIsSubmitting(false);
-      toast.success("Thank you! Your message has been sent successfully.");
-      setName("");
-      setEmail("");
-      setSubject("");
-      setMessage("");
-    }, 1500);
+    }
   };
 
   const containerVariants = {
