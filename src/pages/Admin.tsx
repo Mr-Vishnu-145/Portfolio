@@ -969,13 +969,23 @@ const Admin = () => {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-xl font-bold font-serif flex items-center gap-2">
-                Portfolio Admin Panel <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Active</span>
+              <h1 className="text-xl font-bold font-serif flex items-center gap-2 flex-wrap">
+                Portfolio Admin Panel
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Active</span>
+                {isTursoActive ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-sans font-semibold">
+                    Cloud Database (Global)
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-sans font-semibold animate-pulse" title="VITE_TURSO_AUTH_TOKEN is missing. Storing in local sandbox mode.">
+                    Local Storage Sandbox
+                  </span>
+                )}
               </h1>
-              <p className="text-xs text-muted-foreground">Modify certificates, skills, projects & bio content</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Modify certificates, skills, projects & bio content</p>
             </div>
           </div>
-
+ 
           <div className="flex items-center gap-3">
             <button
               onClick={() => setDark(!dark)}
@@ -1001,7 +1011,24 @@ const Admin = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 mt-8 max-w-5xl">
+      {!isTursoActive && (
+        <div className="container mx-auto px-4 mt-6 max-w-5xl animate-fade-in">
+          <div className="bg-amber-500/5 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-4 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
+            <span className="p-1 rounded bg-amber-500/10 font-bold shrink-0">⚠️ Warning</span>
+            <div>
+              <p className="font-bold text-foreground text-sm">Operating in Local Sandbox Mode</p>
+              <p className="mt-1">
+                Your database credentials are not configured (<code>VITE_TURSO_AUTH_TOKEN</code> is missing). Changes you make here will <strong>only save in your current browser</strong> and will <strong>not reflect on other systems or for other visitors</strong>.
+              </p>
+              <p className="mt-1">
+                To enable global updates, add your Turso Auth Token to <code>VITE_TURSO_AUTH_TOKEN</code> inside your <code>.env</code> file, rebuild, and re-deploy.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+ 
+      <div className="container mx-auto px-4 mt-6 max-w-5xl">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Navigation Tabs */}
           <aside className="md:col-span-1 space-y-1">
