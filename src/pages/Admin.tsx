@@ -269,33 +269,179 @@ const Admin = () => {
     });
   };
 
-  // Skills Handlers
-  const handleAddSkill = (catIndex: number, skillName: string) => {
-    if (!skillName.trim()) return;
+  // Skills Editor States
+  const [editingSkillInfo, setEditingSkillInfo] = useState<{
+    catIndex: number;
+    skillIndex: number;
+  } | null>(null);
+
+  const [skillForm, setSkillForm] = useState({
+    categoryIndex: 0,
+    name: "",
+    level: "Intermediate" as "Beginner" | "Intermediate" | "Advanced" | "Expert",
+    percentage: 75,
+    description: "",
+    usedInProjectsText: ""
+  });
+
+  const handleSaveSkill = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!skillForm.name.trim()) {
+      toast.error("Skill name is required.");
+      return;
+    }
+
     const updatedSkills = [...portfolioData.skills];
-    updatedSkills[catIndex].skills.push(skillName.trim());
+    const cat = updatedSkills[skillForm.categoryIndex];
+    if (!cat.skillItems) cat.skillItems = [];
+    if (!cat.skills) cat.skills = [];
+
+    const skillItem: SkillItem = {
+      name: skillForm.name.trim(),
+      level: skillForm.level,
+      percentage: Number(skillForm.percentage),
+      description: skillForm.description.trim(),
+      usedInProjects: skillForm.usedInProjectsText
+        ? skillForm.usedInProjectsText.split(",").map(p => p.trim()).filter(Boolean)
+        : []
+    };
+
+    if (editingSkillInfo !== null) {
+      const { catIndex, skillIndex } = editingSkillInfo;
+      const oldCat = updatedSkills[catIndex];
+      if (!oldCat.skillItems) oldCat.skillItems = [];
+      if (!oldCat.skills) oldCat.skills = [];
+
+      // If category changed
+      if (catIndex !== skillForm.categoryIndex) {
+        // Remove from old category
+        oldCat.skillItems.splice(skillIndex, 1);
+        const nameIdx = oldCat.skills.indexOf(skillForm.name.trim());
+        if (nameIdx > -1) {
+          oldCat.skills.splice(nameIdx, 1);
+        }
+
+        // Add to new category
+        cat.skillItems.push(skillItem);
+        if (!cat.skills.includes(skillItem.name)) {
+          cat.skills.push(skillItem.name);
+        }
+      } else {
+        // Update in place
+        oldCat.skillItems[skillIndex] = skillItem;
+        // Ensure present in simple list
+        if (!oldCat.skills.includes(skillItem.name)) {
+          oldCat.skills.push(skillItem.name);
+        }
+      }
+      toast.success("Skill updated successfully!");
+    } else {
+      // Add new skill
+      cat.skillItems.push(skillItem);
+      if (!cat.skills.includes(skillItem.name)) {
+        cat.skills.push(skillItem.name);
+      }
+      toast.success("Skill added successfully!");
+    }
+
     setPortfolioData({ ...portfolioData, skills: updatedSkills });
+
+    // Reset Form
+    setSkillForm({
+      categoryIndex: skillForm.categoryIndex,
+      name: "",
+      level: "Intermediate",
+      percentage: 75,
+      description: "",
+      usedInProjectsText: ""
+    });
+    setEditingSkillInfo(null);
+  };
+
+  const handleSelectSkillForEdit = (catIndex: number, skillIndex: number) => {
+    const cat = portfolioData.skills[catIndex];
+    if (!cat) return;
+
+    let skill: SkillItem;
+    if (cat.skillItems && cat.skillItems[skillIndex]) {
+      skill = cat.skillItems[skillIndex];
+    } else {
+      const name = cat.skills[skillIndex];
+      skill = {
+        name,
+        level: "Intermediate",
+        percentage: 75,
+        description: `Practical application of ${name} in engineering laboratory works and project designs.`,
+        usedInProjects: []
+      };
+    }
+
+    setEditingSkillInfo({ catIndex, skillIndex });
+    setSkillForm({
+      categoryIndex: catIndex,
+      name: skill.name,
+      level: skill.level,
+      percentage: skill.percentage,
+      description: skill.description || "",
+      usedInProjectsText: (skill.usedInProjects || []).join(", ")
+    });
+
+    const element = document.getElementById("admin-skill-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleRemoveSkill = (catIndex: number, skillIndex: number) => {
+    if (!confirm("Are you sure you want to delete this skill?")) return;
     const updatedSkills = [...portfolioData.skills];
-    updatedSkills[catIndex].skills.splice(skillIndex, 1);
+    const cat = updatedSkills[catIndex];
+
+    if (cat.skillItems && cat.skillItems[skillIndex]) {
+      const name = cat.skillItems[skillIndex].name;
+      cat.skillItems.splice(skillIndex, 1);
+      const nameIdx = cat.skills.indexOf(name);
+      if (nameIdx > -1) {
+        cat.skills.splice(nameIdx, 1);
+      }
+    } else {
+      cat.skills.splice(skillIndex, 1);
+    }
+
     setPortfolioData({ ...portfolioData, skills: updatedSkills });
+    toast.success("Skill deleted successfully.");
+
+    if (editingSkillInfo && editingSkillInfo.catIndex === catIndex && editingSkillInfo.skillIndex === skillIndex) {
+      setEditingSkillInfo(null);
+      setSkillForm({
+        categoryIndex: 0,
+        name: "",
+        level: "Intermediate",
+        percentage: 75,
+        description: "",
+        usedInProjectsText: ""
+      });
+    }
   };
 
   const handleAddSkillCategory = (title: string) => {
     if (!title.trim()) return;
-    const newCategory: SkillCategory = { title: title.trim(), skills: [] };
+    const newCategory: SkillCategory = { title: title.trim(), skills: [], skillItems: [] };
     setPortfolioData({
       ...portfolioData,
       skills: [...portfolioData.skills, newCategory]
     });
+    toast.success("Skill category added!");
   };
 
   const handleRemoveSkillCategory = (index: number) => {
+    if (!confirm("Are you sure you want to delete this category and all its skills?")) return;
     const updatedSkills = [...portfolioData.skills];
     updatedSkills.splice(index, 1);
     setPortfolioData({ ...portfolioData, skills: updatedSkills });
+    toast.success("Category deleted successfully.");
   };
 
   // Projects Handlers
@@ -1130,10 +1276,162 @@ const Admin = () => {
 
             {/* SKILLS SECTION FORM */}
             {activeTab === "skills" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Skills Categories</h2>
+              <div className="space-y-6 animate-fade-in">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Skills & Expertise</h2>
 
-                {/* Add Category Form */}
+                {/* Skill Details Form */}
+                <form id="admin-skill-form" onSubmit={handleSaveSkill} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Plus size={18} className="text-primary" /> {editingSkillInfo !== null ? "Edit Skill Details" : "Add Detailed Skill"}
+                    </span>
+                    {editingSkillInfo !== null && (
+                      <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded font-mono font-bold animate-pulse">
+                        Editing Mode
+                      </span>
+                    )}
+                  </h3>
+
+                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Skill Category</label>
+                      <select
+                        value={skillForm.categoryIndex}
+                        onChange={(e) => setSkillForm({ ...skillForm, categoryIndex: Number(e.target.value) })}
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {portfolioData.skills.map((cat, idx) => (
+                          <option key={cat.title + idx} value={idx}>{cat.title}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Skill Name</label>
+                      <input
+                        type="text"
+                        value={skillForm.name}
+                        onChange={(e) => setSkillForm({ ...skillForm, name: e.target.value })}
+                        placeholder="e.g. Java, React.js"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-muted-foreground font-semibold">Proficiency Level</label>
+                      <select
+                        value={skillForm.level}
+                        onChange={(e) => setSkillForm({ ...skillForm, level: e.target.value as any })}
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                        <option value="Expert">Expert</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between font-semibold text-muted-foreground">
+                        <label>Mastery Percentage</label>
+                        <span className="text-primary font-mono">{skillForm.percentage}%</span>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          value={skillForm.percentage}
+                          onChange={(e) => setSkillForm({ ...skillForm, percentage: Number(e.target.value) })}
+                          className="flex-1 accent-primary bg-muted rounded-lg h-2 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <label className="text-muted-foreground font-semibold">Skill Description (Keep brief, fits in card)</label>
+                    <textarea
+                      value={skillForm.description}
+                      onChange={(e) => setSkillForm({ ...skillForm, description: e.target.value })}
+                      placeholder="e.g. Object-oriented concepts, multithreading, collections, streams..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-foreground font-sans leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-1 text-xs">
+                    <label className="text-muted-foreground font-semibold">Applied In Projects</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1 max-h-36 overflow-y-auto p-1.5 bg-muted/30 border border-border rounded-lg">
+                      {portfolioData.projects.map((proj) => {
+                        const projectsList = skillForm.usedInProjectsText.split(",").map(p => p.trim()).filter(Boolean);
+                        const isChecked = projectsList.includes(proj.title);
+                        return (
+                          <label key={proj.id} className="flex items-center gap-1.5 p-1.5 rounded bg-card border border-border/60 hover:border-primary/30 cursor-pointer text-[10px] truncate select-none">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                let list = [...projectsList];
+                                if (e.target.checked) {
+                                  if (!list.includes(proj.title)) list.push(proj.title);
+                                } else {
+                                  list = list.filter(p => p !== proj.title);
+                                }
+                                setSkillForm({ ...skillForm, usedInProjectsText: list.join(", ") });
+                              }}
+                              className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                            />
+                            <span className="truncate">{proj.title}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <input
+                      type="text"
+                      value={skillForm.usedInProjectsText}
+                      onChange={(e) => setSkillForm({ ...skillForm, usedInProjectsText: e.target.value })}
+                      placeholder="Or type custom project names (comma separated)..."
+                      className="w-full mt-2 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    {editingSkillInfo !== null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingSkillInfo(null);
+                          setSkillForm({
+                            categoryIndex: 0,
+                            name: "",
+                            level: "Intermediate",
+                            percentage: 75,
+                            description: "",
+                            usedInProjectsText: ""
+                          });
+                          toast.info("Edit cancelled.");
+                        }}
+                        className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-xs hover:bg-accent transition-colors"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1.5 transition-opacity"
+                    >
+                      {editingSkillInfo !== null ? <Save size={14} /> : <Plus size={14} />}
+                      {editingSkillInfo !== null ? "Update Skill" : "Add Skill"}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Add Category Widget */}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -1142,88 +1440,128 @@ const Admin = () => {
                     handleAddSkillCategory(input.value);
                     input.value = "";
                   }}
-                  className="flex gap-2 items-end bg-background p-4 rounded-xl border border-border"
+                  className="flex gap-2 items-end bg-background p-4 rounded-xl border border-border text-xs"
                 >
                   <div className="flex-1 space-y-1">
-                    <label className="text-xs text-muted-foreground">Create Skill Category</label>
+                    <label className="text-muted-foreground font-semibold">Create New Skill Category</label>
                     <input
                       name="categoryTitle"
                       type="text"
-                      placeholder="e.g. Cloud Platforms"
-                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="e.g. Cloud & DevOps"
+                      className="w-full px-3 py-1.5 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                       required
                     />
                   </div>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:opacity-90 flex items-center gap-1.5"
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:opacity-90 flex items-center gap-1 shrink-0"
                   >
-                    <Plus size={16} /> Category
+                    <Plus size={14} /> Create Category
                   </button>
                 </form>
 
-                <div className="space-y-6 mt-6">
-                  {portfolioData.skills.map((category, catIdx) => (
-                    <div key={category.title} className="p-4 rounded-xl bg-background border border-border space-y-4">
-                      <div className="flex justify-between items-center pb-2 border-b border-border">
-                        <h4 className="font-semibold text-foreground">{category.title}</h4>
-                        <button
-                          onClick={() => handleRemoveSkillCategory(catIdx)}
-                          className="text-muted-foreground hover:text-destructive transition-colors"
-                          title="Delete Category"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                {/* Display Current Categories and Skills */}
+                <div className="space-y-6 pt-4 border-t border-border">
+                  <h3 className="font-semibold text-foreground font-serif">Logged Skills Matrix ({portfolioData.skills.length} Categories)</h3>
+                  <div className="space-y-4">
+                    {portfolioData.skills.map((category, catIdx) => {
+                      const items = category.skillItems || [];
+                      const itemNames = new Set(items.map(i => i.name));
+                      
+                      const displayItems: SkillItem[] = [
+                        ...items,
+                        ...category.skills
+                          .filter(name => !itemNames.has(name))
+                          .map(name => ({
+                            name,
+                            level: "Intermediate" as const,
+                            percentage: 75,
+                            description: `Practical application of ${name} in engineering laboratory works and project designs.`,
+                            usedInProjects: []
+                          }))
+                      ];
 
-                      {/* Display Skill Chips */}
-                      <div className="flex flex-wrap gap-2">
-                        {category.skills.map((skill, skillIdx) => (
-                          <span
-                            key={skill}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full bg-accent text-accent-foreground border border-border"
-                          >
-                            {skill}
+                      return (
+                        <div key={category.title + catIdx} className="p-4 rounded-xl bg-background border border-border space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-border">
+                            <span className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                              <span className="w-1.5 h-3 bg-primary rounded-full" /> {category.title} ({displayItems.length})
+                            </span>
                             <button
-                              onClick={() => handleRemoveSkill(catIdx, skillIdx)}
-                              className="text-muted-foreground hover:text-destructive hover:scale-110 font-bold"
+                              type="button"
+                              onClick={() => handleRemoveSkillCategory(catIdx)}
+                              className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                              title="Delete Category"
                             >
-                              &times;
+                              <Trash2 size={16} />
                             </button>
-                          </span>
-                        ))}
-                        {category.skills.length === 0 && (
-                          <span className="text-xs text-muted-foreground">No skills added yet</span>
-                        )}
-                      </div>
+                          </div>
 
-                      {/* Add Skill to Category */}
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const form = e.currentTarget;
-                          const input = form.elements.namedItem("skillName") as HTMLInputElement;
-                          handleAddSkill(catIdx, input.value);
-                          input.value = "";
-                        }}
-                        className="flex gap-2"
-                      >
-                        <input
-                          name="skillName"
-                          type="text"
-                          placeholder="Add skill (e.g. AWS)"
-                          className="flex-1 px-3 py-1 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          required
-                        />
-                        <button
-                          type="submit"
-                          className="px-3 py-1 bg-accent hover:border-primary border border-border text-foreground font-semibold text-xs rounded-lg transition-all"
-                        >
-                          Add
-                        </button>
-                      </form>
-                    </div>
-                  ))}
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {displayItems.map((skill, skillIdx) => {
+                              const isEditingThis = editingSkillInfo !== null && 
+                                                   editingSkillInfo.catIndex === catIdx && 
+                                                   editingSkillInfo.skillIndex === skillIdx;
+                              return (
+                                <div 
+                                  key={skill.name + skillIdx} 
+                                  className={`p-3 rounded-lg border transition-all flex flex-col justify-between gap-2 shadow-sm ${
+                                    isEditingThis 
+                                      ? "bg-primary/5 border-primary ring-1 ring-primary"
+                                      : "bg-card border-border/80 hover:border-primary/20"
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="flex justify-between items-start gap-2">
+                                      <div>
+                                        <span className="font-bold text-xs text-foreground block">{skill.name}</span>
+                                        <span className="text-[9px] text-primary font-mono font-bold bg-primary/10 px-1.5 py-0.5 rounded inline-block mt-0.5">{skill.level}</span>
+                                      </div>
+                                      <span className="text-xs font-mono font-bold text-muted-foreground shrink-0">{skill.percentage}%</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2 line-clamp-2 leading-normal">
+                                      {skill.description}
+                                    </p>
+                                    {skill.usedInProjects && skill.usedInProjects.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-2">
+                                        {skill.usedInProjects.map(p => (
+                                          <span key={p} className="text-[8px] font-mono px-1 py-0.2 bg-muted text-muted-foreground border border-border rounded">
+                                            {p}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex justify-end gap-1.5 border-t border-border/50 pt-2 mt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectSkillForEdit(catIdx, skillIdx)}
+                                      className="p-1 rounded border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                                      title="Edit Skill Details"
+                                    >
+                                      <Edit3 size={12} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSkill(catIdx, skillIdx)}
+                                      className="p-1 rounded border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+                                      title="Delete Skill"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {displayItems.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic col-span-2">No skills in this category yet. Use the form above to add one.</p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
