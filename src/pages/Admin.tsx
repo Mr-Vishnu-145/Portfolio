@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
@@ -32,6 +32,7 @@ interface GitHubRepo {
 
 const Admin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [passcode, setPasscode] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window !== "undefined") {
@@ -43,6 +44,22 @@ const Admin = () => {
   const storeData = usePortfolioStore((state) => state.data);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
   const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "visibility" | "security">("hero");
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const queryParams = new URLSearchParams(location.search);
+      const editProjId = queryParams.get("editProject");
+      if (editProjId) {
+        const found = portfolioData.projects.find(p => p.id === editProjId);
+        if (found) {
+          setActiveTab("projects");
+          handleSelectProjectForEdit(found);
+          // Strip parameters
+          navigate("/admin", { replace: true });
+        }
+      }
+    }
+  }, [location.search, isAuthenticated, portfolioData.projects]);
 
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
