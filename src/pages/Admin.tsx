@@ -595,6 +595,7 @@ const Admin = () => {
   const [eduAchText, setEduAchText] = useState("");
   const [eduActText, setEduActText] = useState("");
   const [eduCertsText, setEduCertsText] = useState("");
+  const [editingEduIndex, setEditingEduIndex] = useState<number | null>(null);
 
   const handleAddEducation = (e: React.FormEvent) => {
     e.preventDefault();
@@ -602,36 +603,99 @@ const Admin = () => {
       toast.error("Please provide at least college name and degree.");
       return;
     }
-    const eduToAdd: EducationData = {
-      id: `edu-${Date.now()}`,
-      college: newEdu.college || "KIT",
-      degree: newEdu.degree || "B.Tech",
-      department: newEdu.department || "",
-      duration: newEdu.duration || "",
-      cgpa: newEdu.cgpa || "",
-      relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
-      projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
-      achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
-      activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
-      certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
-    };
-    setPortfolioData({
-      ...portfolioData,
-      education: [...(portfolioData.education || []), eduToAdd]
-    });
+    const targetEduList = [...(portfolioData.education || [])];
+    
+    if (editingEduIndex !== null) {
+      // Update mode
+      const targetId = targetEduList[editingEduIndex]?.id || `edu-${Date.now()}`;
+      targetEduList[editingEduIndex] = {
+        id: targetId,
+        college: newEdu.college || "",
+        degree: newEdu.degree || "",
+        department: newEdu.department || "",
+        duration: newEdu.duration || "",
+        cgpa: newEdu.cgpa || "",
+        relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
+        projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
+        achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
+        activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
+        certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
+      };
+      setPortfolioData({
+        ...portfolioData,
+        education: targetEduList
+      });
+      setEditingEduIndex(null);
+      toast.success("Education record updated successfully!");
+    } else {
+      // Add mode
+      const eduToAdd: EducationData = {
+        id: `edu-${Date.now()}`,
+        college: newEdu.college || "KIT",
+        degree: newEdu.degree || "B.Tech",
+        department: newEdu.department || "",
+        duration: newEdu.duration || "",
+        cgpa: newEdu.cgpa || "",
+        relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
+        projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
+        achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
+        activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
+        certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
+      };
+      setPortfolioData({
+        ...portfolioData,
+        education: [...targetEduList, eduToAdd]
+      });
+      toast.success("Education added!");
+    }
+
     setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
     setEduCoursesText("");
     setEduProjText("");
     setEduAchText("");
     setEduActText("");
     setEduCertsText("");
-    toast.success("Education added!");
+  };
+
+  const handleSelectEduForEdit = (index: number) => {
+    const edu = (portfolioData.education || [])[index];
+    if (!edu) return;
+    setEditingEduIndex(index);
+    setNewEdu({
+      college: edu.college,
+      degree: edu.degree,
+      department: edu.department,
+      duration: edu.duration,
+      cgpa: edu.cgpa
+    });
+    setEduCoursesText((edu.relevantCoursework || []).join(", "));
+    setEduProjText((edu.projects || []).join(", "));
+    setEduAchText((edu.achievements || []).join("\n"));
+    setEduActText((edu.activities || []).join(", "));
+    setEduCertsText((edu.certificates || []).join(", "));
+
+    const element = document.getElementById("admin-education-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    toast.info(`Editing education record for "${edu.college}"`);
   };
 
   const handleRemoveEducation = (index: number) => {
     const updated = [...(portfolioData.education || [])];
     updated.splice(index, 1);
     setPortfolioData({ ...portfolioData, education: updated });
+    if (editingEduIndex === index) {
+      setEditingEduIndex(null);
+      setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
+      setEduCoursesText("");
+      setEduProjText("");
+      setEduAchText("");
+      setEduActText("");
+      setEduCertsText("");
+    }
   };
 
   // Achievements Handler
@@ -1938,9 +2002,16 @@ const Admin = () => {
               <div className="space-y-6">
                 <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Education</h2>
 
-                <form onSubmit={handleAddEducation} className="bg-background border border-border p-5 rounded-xl space-y-4">
-                  <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Plus size={18} className="text-primary" /> Add Education Institution
+                <form id="admin-education-form" onSubmit={handleAddEducation} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Plus size={18} className="text-primary" /> {editingEduIndex !== null ? "Edit Education Institution" : "Add Education Institution"}
+                    </span>
+                    {editingEduIndex !== null && (
+                      <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded font-mono font-bold animate-pulse">
+                        Editing Mode
+                      </span>
+                    )}
                   </h3>
 
                   <div className="grid sm:grid-cols-2 gap-3">
@@ -2054,12 +2125,33 @@ const Admin = () => {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1"
-                  >
-                    <Plus size={14} /> Add Education Record
-                  </button>
+                  <div className="flex gap-2">
+                    {editingEduIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingEduIndex(null);
+                          setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
+                          setEduCoursesText("");
+                          setEduProjText("");
+                          setEduAchText("");
+                          setEduActText("");
+                          setEduCertsText("");
+                          toast.info("Edit cancelled.");
+                        }}
+                        className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-xs hover:bg-accent transition-colors"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-xs hover:opacity-90 flex items-center justify-center gap-1.5 transition-opacity"
+                    >
+                      {editingEduIndex !== null ? <Save size={14} /> : <Plus size={14} />}
+                      {editingEduIndex !== null ? "Update Record" : "Add Education Record"}
+                    </button>
+                  </div>
                 </form>
 
                 {/* Logged Education records */}
@@ -2067,19 +2159,43 @@ const Admin = () => {
                   <h3 className="font-semibold text-foreground font-serif">Logged Education ({(portfolioData.education || []).length})</h3>
                   <div className="grid gap-2">
                     {(portfolioData.education || []).map((edu, idx) => (
-                      <div key={edu.college + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
-                        <div>
-                          <span className="font-medium text-foreground text-sm block">{edu.college}</span>
-                          <span className="text-xs text-muted-foreground">{edu.degree} | {edu.duration}</span>
+                      <div
+                        key={edu.college + idx}
+                        onClick={() => handleSelectEduForEdit(idx)}
+                        className={`p-3 rounded-lg bg-background border transition-all flex justify-between items-center gap-4 cursor-pointer ${
+                          editingEduIndex === idx
+                            ? "border-primary ring-1 ring-primary shadow-sm bg-primary/5"
+                            : "border-border hover:border-primary/50 hover:shadow-sm"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-foreground text-sm block truncate">{edu.college}</span>
+                          <span className="text-xs text-muted-foreground truncate block">{edu.degree} | {edu.duration}</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEducation(idx)}
-                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
-                          title="Delete Record"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectEduForEdit(idx);
+                            }}
+                            className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                            title="Edit Record"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveEducation(idx);
+                            }}
+                            className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
