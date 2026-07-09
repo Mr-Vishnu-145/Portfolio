@@ -284,11 +284,20 @@ const Admin = () => {
 
   // Projects Handlers
   const [newProject, setNewProject] = useState<Partial<ProjectData>>({
-    title: "", subtitle: "", desc: "", link: "", tech: [], features: []
+    title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false,
+    status: "Completed", duration: "", teamSize: "", role: "",
+    problemStatement: "", businessGoal: "", architectureDiagram: "", folderStructure: "",
+    authenticationFlow: "", testingStrategy: "", seoOptimization: ""
   });
   const [projectTechInput, setProjectTechInput] = useState("");
   const [projectFeatureInput, setProjectFeatureInput] = useState("");
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [projectFormTab, setProjectFormTab] = useState<"basic" | "timeline" | "context" | "architecture" | "details" | "challenges">("basic");
+  const [projectSecFeaturesInput, setProjectSecFeaturesInput] = useState("");
+  const [projectPerfOptsInput, setProjectPerfOptsInput] = useState("");
+  const [projectChallengesInput, setProjectChallengesInput] = useState("");
+  const [projectSolutionsInput, setProjectSolutionsInput] = useState("");
+  const [projectLessonsInput, setProjectLessonsInput] = useState("");
 
   // GitHub Fetcher State with TanStack Query
   const [ghUsername, setGhUsername] = useState("Mr-Vishnu-145");
@@ -338,12 +347,19 @@ const Admin = () => {
       toast.error("Please provide at least a title and description.");
       return;
     }
+
+    const securityFeatures = projectSecFeaturesInput.split("\n").map(s => s.trim()).filter(Boolean);
+    const performanceOptimizations = projectPerfOptsInput.split("\n").map(s => s.trim()).filter(Boolean);
+    const challengesFaced = projectChallengesInput.split("\n").map(s => s.trim()).filter(Boolean);
+    const solutionsImplemented = projectSolutionsInput.split("\n").map(s => s.trim()).filter(Boolean);
+    const lessonsLearned = projectLessonsInput.split("\n").map(s => s.trim()).filter(Boolean);
     
     if (editingProjectId) {
       const updatedProjects = portfolioData.projects.map((proj) => {
         if (proj.id === editingProjectId) {
           return {
             ...proj,
+            ...newProject,
             title: newProject.title || "",
             subtitle: newProject.subtitle || "",
             tech: newProject.tech || [],
@@ -351,6 +367,22 @@ const Admin = () => {
             features: newProject.features || [],
             link: newProject.link || "#",
             featured: !!newProject.featured,
+            status: newProject.status || "Completed",
+            duration: newProject.duration || "",
+            teamSize: newProject.teamSize || "",
+            role: newProject.role || "",
+            problemStatement: newProject.problemStatement || "",
+            businessGoal: newProject.businessGoal || "",
+            architectureDiagram: newProject.architectureDiagram || "",
+            folderStructure: newProject.folderStructure || "",
+            authenticationFlow: newProject.authenticationFlow || "",
+            testingStrategy: newProject.testingStrategy || "",
+            seoOptimization: newProject.seoOptimization || "",
+            securityFeatures,
+            performanceOptimizations,
+            challengesFaced,
+            solutionsImplemented,
+            lessonsLearned,
           };
         }
         return proj;
@@ -360,7 +392,17 @@ const Admin = () => {
         projects: updatedProjects
       });
       setEditingProjectId(null);
-      setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+      setNewProject({
+        title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false,
+        status: "Completed", duration: "", teamSize: "", role: "",
+        problemStatement: "", businessGoal: "", architectureDiagram: "", folderStructure: "",
+        authenticationFlow: "", testingStrategy: "", seoOptimization: ""
+      });
+      setProjectSecFeaturesInput("");
+      setProjectPerfOptsInput("");
+      setProjectChallengesInput("");
+      setProjectSolutionsInput("");
+      setProjectLessonsInput("");
       toast.success("Project updated successfully!");
     } else {
       const projectToAdd: ProjectData = {
@@ -372,12 +414,38 @@ const Admin = () => {
         features: newProject.features || [],
         link: newProject.link || "#",
         featured: !!newProject.featured,
+        status: newProject.status || "Completed",
+        duration: newProject.duration || "",
+        teamSize: newProject.teamSize || "",
+        role: newProject.role || "",
+        problemStatement: newProject.problemStatement || "",
+        businessGoal: newProject.businessGoal || "",
+        architectureDiagram: newProject.architectureDiagram || "",
+        folderStructure: newProject.folderStructure || "",
+        authenticationFlow: newProject.authenticationFlow || "",
+        testingStrategy: newProject.testingStrategy || "",
+        seoOptimization: newProject.seoOptimization || "",
+        securityFeatures,
+        performanceOptimizations,
+        challengesFaced,
+        solutionsImplemented,
+        lessonsLearned,
       };
       setPortfolioData({
         ...portfolioData,
         projects: [...portfolioData.projects, projectToAdd]
       });
-      setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+      setNewProject({
+        title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false,
+        status: "Completed", duration: "", teamSize: "", role: "",
+        problemStatement: "", businessGoal: "", architectureDiagram: "", folderStructure: "",
+        authenticationFlow: "", testingStrategy: "", seoOptimization: ""
+      });
+      setProjectSecFeaturesInput("");
+      setProjectPerfOptsInput("");
+      setProjectChallengesInput("");
+      setProjectSolutionsInput("");
+      setProjectLessonsInput("");
       toast.success("Project added to list!");
     }
   };
@@ -386,6 +454,44 @@ const Admin = () => {
     const updatedProjects = [...portfolioData.projects];
     updatedProjects.splice(index, 1);
     setPortfolioData({ ...portfolioData, projects: updatedProjects });
+  };
+
+  const handleSelectProjectForEdit = (proj: ProjectData) => {
+    setEditingProjectId(proj.id);
+    setNewProject({
+      id: proj.id,
+      title: proj.title,
+      subtitle: proj.subtitle,
+      desc: proj.desc,
+      link: proj.link,
+      tech: proj.tech || [],
+      features: proj.features || [],
+      featured: proj.featured,
+      status: proj.status || "Completed",
+      duration: proj.duration || "",
+      teamSize: proj.teamSize || "",
+      role: proj.role || "",
+      problemStatement: proj.problemStatement || "",
+      businessGoal: proj.businessGoal || "",
+      architectureDiagram: proj.architectureDiagram || "",
+      folderStructure: proj.folderStructure || "",
+      authenticationFlow: proj.authenticationFlow || "",
+      testingStrategy: proj.testingStrategy || "",
+      seoOptimization: proj.seoOptimization || "",
+    });
+    setProjectSecFeaturesInput((proj.securityFeatures || []).join("\n"));
+    setProjectPerfOptsInput((proj.performanceOptimizations || []).join("\n"));
+    setProjectChallengesInput((proj.challengesFaced || []).join("\n"));
+    setProjectSolutionsInput((proj.solutionsImplemented || []).join("\n"));
+    setProjectLessonsInput((proj.lessonsLearned || []).join("\n"));
+
+    const element = document.getElementById("admin-project-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    toast.info(`Editing "${proj.title}"`);
   };
 
   // Certifications Handlers
@@ -1122,171 +1228,420 @@ const Admin = () => {
                     )}
                   </h3>
 
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase text-muted-foreground">Project Title</label>
-                      <input
-                        type="text"
-                        value={newProject.title}
-                        onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                        placeholder="e.g. Portfolio Builder"
-                        className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] uppercase text-muted-foreground">Subtitle / Category</label>
-                      <input
-                        type="text"
-                        value={newProject.subtitle}
-                        onChange={(e) => setNewProject({ ...newProject, subtitle: e.target.value })}
-                        placeholder="e.g. Full-Stack Project"
-                        className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                      />
-                    </div>
+                  {/* Form Sub-Tabs Navigation */}
+                  <div className="flex flex-wrap gap-1 border-b border-border pb-2">
+                    {[
+                      { id: "basic", label: "Basic Info" },
+                      { id: "timeline", label: "Timeline & Role" },
+                      { id: "context", label: "Problem & Goal" },
+                      { id: "architecture", label: "Architecture" },
+                      { id: "details", label: "Auth & Security" },
+                      { id: "challenges", label: "Challenges & Lessons" }
+                    ].map(subTab => (
+                      <button
+                        key={subTab.id}
+                        type="button"
+                        onClick={() => setProjectFormTab(subTab.id as any)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          projectFormTab === subTab.id
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        {subTab.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase text-muted-foreground">Description</label>
-                    <textarea
-                      value={newProject.desc}
-                      onChange={(e) => setNewProject({ ...newProject, desc: e.target.value })}
-                      placeholder="Brief project details..."
-                      rows={2}
-                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                  {/* Sub-Tab 1: Basic Info */}
+                  {projectFormTab === "basic" && (
+                    <div className="space-y-4 pt-2">
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Project Title</label>
+                          <input
+                            type="text"
+                            value={newProject.title || ""}
+                            onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                            placeholder="e.g. Portfolio Builder"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Subtitle / Category</label>
+                          <input
+                            type="text"
+                            value={newProject.subtitle || ""}
+                            onChange={(e) => setNewProject({ ...newProject, subtitle: e.target.value })}
+                            placeholder="e.g. Full-Stack Project"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {/* Tech List */}
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-muted-foreground">Tech Stack Tags</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={projectTechInput}
-                          onChange={(e) => setProjectTechInput(e.target.value)}
-                          placeholder="e.g. React.js"
-                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!projectTechInput.trim()) return;
-                            const currentTech = newProject.tech || [];
-                            setNewProject({ ...newProject, tech: [...currentTech, projectTechInput.trim()] });
-                            setProjectTechInput("");
-                          }}
-                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
-                        >
-                          Add
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {(newProject.tech || []).map((t, idx) => (
-                          <span key={t} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
-                            {t}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const list = [...(newProject.tech || [])];
-                                list.splice(idx, 1);
-                                setNewProject({ ...newProject, tech: list });
-                              }}
-                              className="font-bold text-xs"
-                            >
-                              &times;
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Features List */}
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-muted-foreground">Core Features Checklist</label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={projectFeatureInput}
-                          onChange={(e) => setProjectFeatureInput(e.target.value)}
-                          placeholder="e.g. Authentication"
-                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!projectFeatureInput.trim()) return;
-                            const currentFeatures = newProject.features || [];
-                            setNewProject({ ...newProject, features: [...currentFeatures, projectFeatureInput.trim()] });
-                            setProjectFeatureInput("");
-                          }}
-                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
-                        >
-                          Add
-                        </button>
-                      </div>
                       <div className="space-y-1">
-                        {(newProject.features || []).map((f, idx) => (
-                          <div key={f} className="text-[10px] text-muted-foreground flex items-center justify-between bg-card p-1 border border-border rounded">
-                            <span>• {f}</span>
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Description</label>
+                        <textarea
+                          value={newProject.desc || ""}
+                          onChange={(e) => setNewProject({ ...newProject, desc: e.target.value })}
+                          placeholder="Brief project details..."
+                          rows={2}
+                          className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {/* Tech List */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Tech Stack Tags</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={projectTechInput}
+                              onChange={(e) => setProjectTechInput(e.target.value)}
+                              placeholder="e.g. React.js"
+                              className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
                             <button
                               type="button"
                               onClick={() => {
-                                const list = [...(newProject.features || [])];
-                                list.splice(idx, 1);
-                                setNewProject({ ...newProject, features: list });
+                                if (!projectTechInput.trim()) return;
+                                const currentTech = newProject.tech || [];
+                                setNewProject({ ...newProject, tech: [...currentTech, projectTechInput.trim()] });
+                                setProjectTechInput("");
                               }}
-                              className="text-destructive font-bold px-1"
+                              className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
                             >
-                              &times;
+                              Add
                             </button>
                           </div>
-                        ))}
+                          <div className="flex flex-wrap gap-1">
+                            {(newProject.tech || []).map((t, idx) => (
+                              <span key={t} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                                {t}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const list = [...(newProject.tech || [])];
+                                    list.splice(idx, 1);
+                                    setNewProject({ ...newProject, tech: list });
+                                  }}
+                                  className="font-bold text-xs"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Features List */}
+                        <div className="space-y-2">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Core Features Checklist</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={projectFeatureInput}
+                              onChange={(e) => setProjectFeatureInput(e.target.value)}
+                              placeholder="e.g. Authentication"
+                              className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!projectFeatureInput.trim()) return;
+                                const currentFeatures = newProject.features || [];
+                                setNewProject({ ...newProject, features: [...currentFeatures, projectFeatureInput.trim()] });
+                                setProjectFeatureInput("");
+                              }}
+                              className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg"
+                            >
+                              Add
+                            </button>
+                          </div>
+                          <div className="space-y-1">
+                            {(newProject.features || []).map((f, idx) => (
+                              <div key={f} className="text-[10px] text-muted-foreground flex items-center justify-between bg-card p-1 border border-border rounded">
+                                <span>• {f}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const list = [...(newProject.features || [])];
+                                    list.splice(idx, 1);
+                                    setNewProject({ ...newProject, features: list });
+                                  }}
+                                  className="text-destructive font-bold px-1"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Project Repository URL / Live Link</label>
+                        <input
+                          type="url"
+                          value={newProject.link || ""}
+                          onChange={(e) => setNewProject({ ...newProject, link: e.target.value })}
+                          placeholder="https://github.com/..."
+                          className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 py-1">
+                        <input
+                          type="checkbox"
+                          id="projectFeatured"
+                          checked={!!newProject.featured}
+                          onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <label htmlFor="projectFeatured" className="text-xs text-muted-foreground cursor-pointer font-semibold">
+                          Featured Project (Show on Homepage)
+                        </label>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase text-muted-foreground">Project Repository URL / Live Link</label>
-                    <input
-                      type="url"
-                      value={newProject.link}
-                      onChange={(e) => setNewProject({ ...newProject, link: e.target.value })}
-                      placeholder="https://github.com/..."
-                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                  {/* Sub-Tab 2: Timeline & Role */}
+                  {projectFormTab === "timeline" && (
+                    <div className="space-y-4 pt-2 animate-fade-in">
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Status</label>
+                          <select
+                            value={newProject.status || "Completed"}
+                            onChange={(e) => setNewProject({ ...newProject, status: e.target.value as any })}
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          >
+                            <option value="Completed">Completed</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Planned">Planned</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Timeline / Duration</label>
+                          <input
+                            type="text"
+                            value={newProject.duration || ""}
+                            onChange={(e) => setNewProject({ ...newProject, duration: e.target.value })}
+                            placeholder="e.g. 4 Months or Jan 2025 - May 2025"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="flex items-center gap-2 py-1">
-                    <input
-                      type="checkbox"
-                      id="projectFeatured"
-                      checked={!!newProject.featured}
-                      onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
-                      className="rounded border-border text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <label htmlFor="projectFeatured" className="text-xs text-muted-foreground cursor-pointer font-semibold">
-                      Featured Project (Show on Homepage)
-                    </label>
-                  </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Team Size</label>
+                          <input
+                            type="text"
+                            value={newProject.teamSize || ""}
+                            onChange={(e) => setNewProject({ ...newProject, teamSize: e.target.value })}
+                            placeholder="e.g. Solo Developer or Team of 3"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Your Role</label>
+                          <input
+                            type="text"
+                            value={newProject.role || ""}
+                            onChange={(e) => setNewProject({ ...newProject, role: e.target.value })}
+                            placeholder="e.g. Lead Full-Stack Developer"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="flex gap-2">
+                  {/* Sub-Tab 3: Problem & Goal */}
+                  {projectFormTab === "context" && (
+                    <div className="space-y-4 pt-2 animate-fade-in">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Problem Statement</label>
+                        <textarea
+                          value={newProject.problemStatement || ""}
+                          onChange={(e) => setNewProject({ ...newProject, problemStatement: e.target.value })}
+                          placeholder="Describe the business/user issues that this project solves..."
+                          rows={4}
+                          className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Business Goal & Objectives</label>
+                        <textarea
+                          value={newProject.businessGoal || ""}
+                          onChange={(e) => setNewProject({ ...newProject, businessGoal: e.target.value })}
+                          placeholder="What did this project set out to achieve?"
+                          rows={4}
+                          className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-Tab 4: Architecture */}
+                  {projectFormTab === "architecture" && (
+                    <div className="space-y-4 pt-2 animate-fade-in">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">System Architecture Diagram (Text Art)</label>
+                        <textarea
+                          value={newProject.architectureDiagram || ""}
+                          onChange={(e) => setNewProject({ ...newProject, architectureDiagram: e.target.value })}
+                          placeholder="Draw a text-based system diagram, e.g.:&#10;[React Client] ===> [Spring Boot] ===> [MySQL]"
+                          rows={6}
+                          className="w-full p-3 text-xs font-mono rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-tight whitespace-pre"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Workspace Directory Structure (Text Art)</label>
+                        <textarea
+                          value={newProject.folderStructure || ""}
+                          onChange={(e) => setNewProject({ ...newProject, folderStructure: e.target.value })}
+                          placeholder="Provide files directory layout tree, e.g.:&#10;project/&#10;├── frontend/&#10;└── backend/"
+                          rows={6}
+                          className="w-full p-3 text-xs font-mono rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-tight whitespace-pre"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-Tab 5: Auth & Security */}
+                  {projectFormTab === "details" && (
+                    <div className="space-y-4 pt-2 animate-fade-in">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Authentication Flow Details</label>
+                        <textarea
+                          value={newProject.authenticationFlow || ""}
+                          onChange={(e) => setNewProject({ ...newProject, authenticationFlow: e.target.value })}
+                          placeholder="Describe how authentication and authorizations work (e.g. JWT session cookies, standard PIN check...)"
+                          rows={2}
+                          className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Security Implementations (One per line)</label>
+                          <textarea
+                            value={projectSecFeaturesInput}
+                            onChange={(e) => setProjectSecFeaturesInput(e.target.value)}
+                            placeholder="Spring Security JWT token authentication&#10;BCrypt encrypted passwords&#10;SQL injection parameter bindings"
+                            rows={4}
+                            className="w-full p-3 text-xs font-sans rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Performance Optimizations (One per line)</label>
+                          <textarea
+                            value={projectPerfOptsInput}
+                            onChange={(e) => setProjectPerfOptsInput(e.target.value)}
+                            placeholder="HikariCP database connection pooling&#10;Dynamic bundles splitting and code caching&#10;Tables index queries tuning"
+                            rows={4}
+                            className="w-full p-3 text-xs font-sans rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Testing Strategy</label>
+                          <input
+                            type="text"
+                            value={newProject.testingStrategy || ""}
+                            onChange={(e) => setNewProject({ ...newProject, testingStrategy: e.target.value })}
+                            placeholder="e.g. Unit tests with JUnit & Mockito"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">SEO Configurations</label>
+                          <input
+                            type="text"
+                            value={newProject.seoOptimization || ""}
+                            onChange={(e) => setNewProject({ ...newProject, seoOptimization: e.target.value })}
+                            placeholder="e.g. Structured tag layouts and robot indexing headers"
+                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sub-Tab 6: Challenges & Lessons */}
+                  {projectFormTab === "challenges" && (
+                    <div className="space-y-4 pt-2 animate-fade-in">
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Challenges Faced (One per line)</label>
+                          <textarea
+                            value={projectChallengesInput}
+                            onChange={(e) => setProjectChallengesInput(e.target.value)}
+                            placeholder="Managing concurrent stock updates&#10;Query response speed constraints"
+                            rows={5}
+                            className="w-full p-3 text-xs font-sans rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase text-muted-foreground font-semibold">Solutions Implemented (One per line)</label>
+                          <textarea
+                            value={projectSolutionsInput}
+                            onChange={(e) => setProjectSolutionsInput(e.target.value)}
+                            placeholder="Applied database pessimistic locking&#10;Constructed cached SQL database tables"
+                            rows={5}
+                            className="w-full p-3 text-xs font-sans rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground font-semibold">Key Takeaways & Lessons (One per line)</label>
+                        <textarea
+                          value={projectLessonsInput}
+                          onChange={(e) => setProjectLessonsInput(e.target.value)}
+                          placeholder="Always design API formats beforehand&#10;React error boundaries secure client states"
+                          rows={4}
+                          className="w-full p-3 text-xs font-sans rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Save/Cancel Controls */}
+                  <div className="flex gap-2 pt-2 border-t border-border mt-4">
                     {editingProjectId && (
                       <button
                         type="button"
                         onClick={() => {
                           setEditingProjectId(null);
-                          setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+                          setNewProject({
+                            title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false,
+                            status: "Completed", duration: "", teamSize: "", role: "",
+                            problemStatement: "", businessGoal: "", architectureDiagram: "", folderStructure: "",
+                            authenticationFlow: "", testingStrategy: "", seoOptimization: ""
+                          });
+                          setProjectSecFeaturesInput("");
+                          setProjectPerfOptsInput("");
+                          setProjectChallengesInput("");
+                          setProjectSolutionsInput("");
+                          setProjectLessonsInput("");
                           toast.info("Edit cancelled.");
                         }}
-                        className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-sm hover:bg-accent"
+                        className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-sm hover:bg-accent transition-colors"
                       >
                         Cancel Edit
                       </button>
                     )}
                     <button
                       onClick={handleAddProject}
-                      className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5 transition-opacity"
                     >
                       {editingProjectId ? <Save size={16} /> : <Plus size={16} />}
                       {editingProjectId ? "Update Project" : "Add Project to Portfolio"}
@@ -1301,26 +1656,7 @@ const Admin = () => {
                     {portfolioData.projects.map((proj, idx) => (
                       <div
                         key={proj.title + idx}
-                        onClick={() => {
-                          setEditingProjectId(proj.id);
-                          setNewProject({
-                            id: proj.id,
-                            title: proj.title,
-                            subtitle: proj.subtitle,
-                            desc: proj.desc,
-                            link: proj.link,
-                            tech: proj.tech || [],
-                            features: proj.features || [],
-                            featured: proj.featured
-                          });
-                          const element = document.getElementById("admin-project-form");
-                          if (element) {
-                            element.scrollIntoView({ behavior: "smooth" });
-                          } else {
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }
-                          toast.info(`Editing "${proj.title}"`);
-                        }}
+                        onClick={() => handleSelectProjectForEdit(proj)}
                         className={`p-4 rounded-xl bg-background border transition-all flex justify-between items-center gap-4 cursor-pointer ${
                           editingProjectId === proj.id
                             ? "border-primary ring-1 ring-primary shadow-md bg-primary/5"
@@ -1360,24 +1696,7 @@ const Admin = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingProjectId(proj.id);
-                              setNewProject({
-                                id: proj.id,
-                                title: proj.title,
-                                subtitle: proj.subtitle,
-                                desc: proj.desc,
-                                link: proj.link,
-                                tech: proj.tech || [],
-                                features: proj.features || [],
-                                featured: proj.featured
-                              });
-                              const element = document.getElementById("admin-project-form");
-                              if (element) {
-                                element.scrollIntoView({ behavior: "smooth" });
-                              } else {
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                              }
-                              toast.info(`Editing "${proj.title}"`);
+                              handleSelectProjectForEdit(proj);
                             }}
                             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
                             title="Edit Project"
