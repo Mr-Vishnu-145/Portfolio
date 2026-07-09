@@ -4,7 +4,7 @@ import { getPortfolioData, ProjectData } from "@/lib/portfolioData";
 import { 
   ArrowLeft, Github, ExternalLink, Calendar, Users, 
   Tag, Shield, Server, Cpu, Database, Award, ArrowRight,
-  HelpCircle, CheckCircle, AlertTriangle, Lightbulb, Code, Edit3
+  HelpCircle, CheckCircle, AlertTriangle, Lightbulb, Code
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -52,21 +52,13 @@ const ProjectDetails = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      {/* Back & Edit Buttons */}
-      <div className="flex justify-between items-center mb-8">
-        <Link 
-          to="/projects" 
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary font-semibold transition-colors"
-        >
-          <ArrowLeft size={14} /> Back to Projects
-        </Link>
-        <Link 
-          to={`/admin?editProject=${project.id}`} 
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary-foreground font-bold transition-all bg-primary/10 hover:bg-primary px-3 py-1.5 rounded-lg border border-primary/20 hover:border-primary"
-        >
-          <Edit3 size={14} /> Edit Project in Admin
-        </Link>
-      </div>
+      {/* Back Button */}
+      <Link 
+        to="/projects" 
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-8 font-semibold transition-colors"
+      >
+        <ArrowLeft size={14} /> Back to Projects
+      </Link>
 
       {/* Hero Banner Section */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-md mb-12 relative">
