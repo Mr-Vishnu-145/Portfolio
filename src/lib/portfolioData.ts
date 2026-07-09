@@ -828,7 +828,8 @@ export const getPortfolioData = (): PortfolioData => {
           education: parsed.education || defaultPortfolioData.education,
           achievements: parsed.achievements || defaultPortfolioData.achievements,
           resume: parsed.resume || defaultPortfolioData.resume,
-          contactExtra: parsed.contactExtra || defaultPortfolioData.contactExtra
+          contactExtra: parsed.contactExtra || defaultPortfolioData.contactExtra,
+          sectionVisibility: parsed.sectionVisibility || defaultPortfolioData.sectionVisibility
         };
       }
     } catch (error) {
@@ -857,12 +858,13 @@ export const savePortfolioData = (data: PortfolioData): void => {
     education: data.education || defaultPortfolioData.education,
     achievements: data.achievements || defaultPortfolioData.achievements,
     resume: data.resume || defaultPortfolioData.resume,
-    contactExtra: data.contactExtra || defaultPortfolioData.contactExtra
+    contactExtra: data.contactExtra || defaultPortfolioData.contactExtra,
+    sectionVisibility: data.sectionVisibility || defaultPortfolioData.sectionVisibility
   };
 
   if (!isTursoActive && typeof window !== "undefined") {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryPortfolioData));
     } catch (error) {
       console.error("Failed to save portfolio data to localStorage:", error);
     }
