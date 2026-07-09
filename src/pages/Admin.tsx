@@ -43,23 +43,22 @@ const Admin = () => {
 
   const storeData = usePortfolioStore((state) => state.data);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
-  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "visibility" | "security">("hero");
+  const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "visibility" | "security">(() => {
+    if (typeof window !== "undefined") {
+      const queryParams = new URLSearchParams(window.location.hash.split("?")[1] || window.location.search);
+      const tab = queryParams.get("tab");
+      if (tab) return tab as any;
+    }
+    return "hero";
+  });
 
   useEffect(() => {
-    if (isAuthenticated) {
-      const queryParams = new URLSearchParams(location.search);
-      const editProjId = queryParams.get("editProject");
-      if (editProjId) {
-        const found = portfolioData.projects.find(p => p.id === editProjId);
-        if (found) {
-          setActiveTab("projects");
-          handleSelectProjectForEdit(found);
-          // Strip parameters
-          navigate("/admin", { replace: true });
-        }
-      }
+    const queryParams = new URLSearchParams(location.search || window.location.hash.split("?")[1]);
+    const tab = queryParams.get("tab");
+    if (tab) {
+      setActiveTab(tab as any);
     }
-  }, [location.search, isAuthenticated, portfolioData.projects]);
+  }, [location.search]);
 
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
@@ -1673,12 +1672,8 @@ const Admin = () => {
                     {portfolioData.projects.map((proj, idx) => (
                       <div
                         key={proj.title + idx}
-                        onClick={() => handleSelectProjectForEdit(proj)}
-                        className={`p-4 rounded-xl bg-background border transition-all flex justify-between items-center gap-4 cursor-pointer ${
-                          editingProjectId === proj.id
-                            ? "border-primary ring-1 ring-primary shadow-md bg-primary/5"
-                            : "border-border hover:border-primary/50 hover:shadow-sm"
-                        }`}
+                        onClick={() => navigate(`/admin/edit-project/${proj.id}`)}
+                        className="p-4 rounded-xl bg-background border border-border hover:border-primary/50 hover:shadow-sm transition-all flex justify-between items-center gap-4 cursor-pointer"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
@@ -1713,7 +1708,7 @@ const Admin = () => {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSelectProjectForEdit(proj);
+                              navigate(`/admin/edit-project/${proj.id}`);
                             }}
                             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
                             title="Edit Project"

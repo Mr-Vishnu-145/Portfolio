@@ -9,6 +9,7 @@ import About from "./pages/About";
 import Skills from "./pages/Skills";
 import Projects from "./pages/Projects";
 import ProjectDetails from "./pages/ProjectDetails";
+import EditProject from "./pages/EditProject";
 import Certifications from "./pages/Certifications";
 import Experience from "./pages/Experience";
 import Education from "./pages/Education";
@@ -59,6 +60,7 @@ const App = () => {
         <HashRouter>
           <Routes>
             <Route path="/admin" element={<Admin />} />
+            <Route path="/admin/edit-project/:id" element={<EditProject />} />
           
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<Layout><About /></Layout>} />
