@@ -151,7 +151,7 @@ const Navbar = () => {
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className={`flex items-center gap-1 text-sm font-semibold transition-all duration-300 ${
-                  dropdownOpen || filteredSecondary.some(l => window.location.pathname.endsWith(l.href))
+                  dropdownOpen || filteredSecondary.some(l => window.location.hash.endsWith(l.href) || window.location.pathname.endsWith(l.href))
                     ? "text-primary"
                     : "text-muted-foreground hover:text-primary"
                 }`}
