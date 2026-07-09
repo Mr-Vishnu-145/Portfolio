@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
-  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders
+  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -288,6 +288,7 @@ const Admin = () => {
   });
   const [projectTechInput, setProjectTechInput] = useState("");
   const [projectFeatureInput, setProjectFeatureInput] = useState("");
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
   // GitHub Fetcher State with TanStack Query
   const [ghUsername, setGhUsername] = useState("Mr-Vishnu-145");
@@ -337,22 +338,48 @@ const Admin = () => {
       toast.error("Please provide at least a title and description.");
       return;
     }
-    const projectToAdd: ProjectData = {
-      id: newProject.id || `project-${Date.now()}`,
-      title: newProject.title || "New Project",
-      subtitle: newProject.subtitle || "Side Project",
-      tech: newProject.tech || [],
-      desc: newProject.desc || "",
-      features: newProject.features || [],
-      link: newProject.link || "#",
-      featured: !!newProject.featured,
-    };
-    setPortfolioData({
-      ...portfolioData,
-      projects: [...portfolioData.projects, projectToAdd]
-    });
-    setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
-    toast.success("Project added to list!");
+    
+    if (editingProjectId) {
+      const updatedProjects = portfolioData.projects.map((proj) => {
+        if (proj.id === editingProjectId) {
+          return {
+            ...proj,
+            title: newProject.title || "",
+            subtitle: newProject.subtitle || "",
+            tech: newProject.tech || [],
+            desc: newProject.desc || "",
+            features: newProject.features || [],
+            link: newProject.link || "#",
+            featured: !!newProject.featured,
+          };
+        }
+        return proj;
+      });
+      setPortfolioData({
+        ...portfolioData,
+        projects: updatedProjects
+      });
+      setEditingProjectId(null);
+      setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+      toast.success("Project updated successfully!");
+    } else {
+      const projectToAdd: ProjectData = {
+        id: newProject.id || `project-${Date.now()}`,
+        title: newProject.title || "New Project",
+        subtitle: newProject.subtitle || "Side Project",
+        tech: newProject.tech || [],
+        desc: newProject.desc || "",
+        features: newProject.features || [],
+        link: newProject.link || "#",
+        featured: !!newProject.featured,
+      };
+      setPortfolioData({
+        ...portfolioData,
+        projects: [...portfolioData.projects, projectToAdd]
+      });
+      setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+      toast.success("Project added to list!");
+    }
   };
 
   const handleRemoveProject = (index: number) => {
@@ -1082,9 +1109,17 @@ const Admin = () => {
                 </div>
 
                 {/* Add New Project Form */}
-                <div className="bg-background border border-border p-5 rounded-xl space-y-4">
+                <div id="admin-project-form" className="bg-background border border-border p-5 rounded-xl space-y-4">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Plus size={18} className="text-primary" /> Add New Project
+                    {editingProjectId ? (
+                      <>
+                        <Sparkles size={18} className="text-primary animate-pulse" /> Edit Project: <span className="text-primary font-bold">{newProject.title}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={18} className="text-primary" /> Add New Project
+                      </>
+                    )}
                   </h3>
 
                   <div className="grid sm:grid-cols-2 gap-3">
@@ -1235,12 +1270,28 @@ const Admin = () => {
                     </label>
                   </div>
 
-                  <button
-                    onClick={handleAddProject}
-                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
-                  >
-                    <Plus size={16} /> Add Project to Portfolio
-                  </button>
+                  <div className="flex gap-2">
+                    {editingProjectId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingProjectId(null);
+                          setNewProject({ title: "", subtitle: "", desc: "", link: "", tech: [], features: [], featured: false });
+                          toast.info("Edit cancelled.");
+                        }}
+                        className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-sm hover:bg-accent"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                    <button
+                      onClick={handleAddProject}
+                      className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                    >
+                      {editingProjectId ? <Save size={16} /> : <Plus size={16} />}
+                      {editingProjectId ? "Update Project" : "Add Project to Portfolio"}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Projects List */}
@@ -1248,23 +1299,51 @@ const Admin = () => {
                   <h3 className="font-semibold text-foreground">Current Projects ({portfolioData.projects.length})</h3>
                   <div className="grid gap-3">
                     {portfolioData.projects.map((proj, idx) => (
-                      <div key={proj.title + idx} className="p-4 rounded-xl bg-background border border-border flex justify-between items-center gap-4">
-                        <div>
+                      <div
+                        key={proj.title + idx}
+                        onClick={() => {
+                          setEditingProjectId(proj.id);
+                          setNewProject({
+                            id: proj.id,
+                            title: proj.title,
+                            subtitle: proj.subtitle,
+                            desc: proj.desc,
+                            link: proj.link,
+                            tech: proj.tech || [],
+                            features: proj.features || [],
+                            featured: proj.featured
+                          });
+                          const element = document.getElementById("admin-project-form");
+                          if (element) {
+                            element.scrollIntoView({ behavior: "smooth" });
+                          } else {
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }
+                          toast.info(`Editing "${proj.title}"`);
+                        }}
+                        className={`p-4 rounded-xl bg-background border transition-all flex justify-between items-center gap-4 cursor-pointer ${
+                          editingProjectId === proj.id
+                            ? "border-primary ring-1 ring-primary shadow-md bg-primary/5"
+                            : "border-border hover:border-primary/50 hover:shadow-sm"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-foreground text-sm">{proj.title}</h4>
+                            <h4 className="font-bold text-foreground text-sm truncate">{proj.title}</h4>
                             {proj.featured && (
-                              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-mono text-primary font-semibold border border-primary/20">
+                              <span className="px-1.5 py-0.5 rounded bg-primary/10 text-[9px] font-mono text-primary font-semibold border border-primary/20 shrink-0">
                                 Featured
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground font-mono">{proj.subtitle}</p>
+                          <p className="text-xs text-muted-foreground font-mono truncate">{proj.subtitle}</p>
                           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{proj.desc}</p>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               const list = [...portfolioData.projects];
                               list[idx] = { ...list[idx], featured: !list[idx].featured };
                               setPortfolioData({ ...portfolioData, projects: list });
@@ -1278,7 +1357,39 @@ const Admin = () => {
                             {proj.featured ? "★ Featured" : "Standard"}
                           </button>
                           <button
-                            onClick={() => handleRemoveProject(idx)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProjectId(proj.id);
+                              setNewProject({
+                                id: proj.id,
+                                title: proj.title,
+                                subtitle: proj.subtitle,
+                                desc: proj.desc,
+                                link: proj.link,
+                                tech: proj.tech || [],
+                                features: proj.features || [],
+                                featured: proj.featured
+                              });
+                              const element = document.getElementById("admin-project-form");
+                              if (element) {
+                                element.scrollIntoView({ behavior: "smooth" });
+                              } else {
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }
+                              toast.info(`Editing "${proj.title}"`);
+                            }}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
+                            title="Edit Project"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveProject(idx);
+                            }}
                             className="p-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive transition-colors shrink-0"
                             title="Delete Project"
                           >
