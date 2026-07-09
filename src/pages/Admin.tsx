@@ -42,6 +42,7 @@ const Admin = () => {
   });
 
   const storeData = usePortfolioStore((state) => state.data);
+  const storeDbError = usePortfolioStore((state) => state.dbError);
   const [portfolioData, setPortfolioData] = useState<PortfolioData>(storeData);
   const [activeTab, setActiveTab] = useState<"hero" | "about" | "skills" | "projects" | "certifications" | "experience" | "education" | "achievements" | "resume" | "messages" | "visibility" | "security">(() => {
     if (typeof window !== "undefined") {
@@ -151,11 +152,14 @@ const Admin = () => {
     setPortfolioData(storeData);
   }, [storeData]);
 
-  // Debounced auto-save to Zustand store and localStorage for real-time live sync
+  // Debounced auto-save to Zustand store for real-time live database sync
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       if (JSON.stringify(portfolioData) !== JSON.stringify(storeData)) {
-        usePortfolioStore.getState().updateData(portfolioData);
+        const success = await usePortfolioStore.getState().updateData(portfolioData);
+        if (!success) {
+          toast.error("Database auto-save failed! Please verify connection.");
+        }
       }
     }, 400);
     return () => clearTimeout(timer);
@@ -228,9 +232,13 @@ const Admin = () => {
   };
 
   // General Save Handler
-  const handleSave = () => {
-    usePortfolioStore.getState().updateData(portfolioData);
-    toast.success("Portfolio changes saved successfully!");
+  const handleSave = async () => {
+    const success = await usePortfolioStore.getState().updateData(portfolioData);
+    if (success) {
+      toast.success("Portfolio changes saved globally to database!");
+    } else {
+      toast.error("Failed to save changes to the database! Check connection or credentials.");
+    }
   };
 
   // State Updaters
@@ -1013,15 +1021,27 @@ const Admin = () => {
 
       {!isTursoActive && (
         <div className="container mx-auto px-4 mt-6 max-w-5xl animate-fade-in">
-          <div className="bg-amber-500/5 border border-amber-500/20 text-amber-600 dark:text-amber-400 p-4 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
-            <span className="p-1 rounded bg-amber-500/10 font-bold shrink-0">⚠️ Warning</span>
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
+            <span className="p-1 rounded bg-destructive/20 font-bold shrink-0">⚠️ Inactive</span>
             <div>
-              <p className="font-bold text-foreground text-sm">Operating in Local Sandbox Mode</p>
+              <p className="font-bold text-foreground text-sm">Database Credentials Missing</p>
               <p className="mt-1">
-                Your database credentials are not configured (<code>VITE_TURSO_AUTH_TOKEN</code> is missing). Changes you make here will <strong>only save in your current browser</strong> and will <strong>not reflect on other systems or for other visitors</strong>.
+                Your database credentials are not configured (<code>VITE_TURSO_AUTH_TOKEN</code> is missing). Local sandbox mode has been disabled. You must configure a database connection in your <code>.env</code> file to save changes.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {storeDbError && (
+        <div className="container mx-auto px-4 mt-6 max-w-5xl animate-fade-in">
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
+            <span className="p-1 rounded bg-destructive/20 font-bold shrink-0">❌ Database Error</span>
+            <div>
+              <p className="font-bold text-foreground text-sm">Database Connection Error</p>
+              <p className="mt-1 font-mono text-xs">{storeDbError}</p>
               <p className="mt-1">
-                To enable global updates, add your Turso Auth Token to <code>VITE_TURSO_AUTH_TOKEN</code> inside your <code>.env</code> file, rebuild, and re-deploy.
+                Please verify your Turso database credentials inside the <code>.env</code> file, check your connection, and try again.
               </p>
             </div>
           </div>

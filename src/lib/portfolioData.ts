@@ -805,37 +805,6 @@ const isTursoActive = !!dbToken;
 let memoryPortfolioData: PortfolioData = defaultPortfolioData;
 
 export const getPortfolioData = (): PortfolioData => {
-  if (!isTursoActive && typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        memoryPortfolioData = {
-          ...defaultPortfolioData,
-          ...parsed,
-          about: {
-            ...defaultPortfolioData.about,
-            ...(parsed.about || {})
-          },
-          hero: {
-            ...defaultPortfolioData.hero,
-            ...(parsed.hero || {})
-          },
-          skills: parsed.skills || defaultPortfolioData.skills,
-          projects: parsed.projects || defaultPortfolioData.projects,
-          certifications: parsed.certifications || defaultPortfolioData.certifications,
-          experience: parsed.experience || defaultPortfolioData.experience,
-          education: parsed.education || defaultPortfolioData.education,
-          achievements: parsed.achievements || defaultPortfolioData.achievements,
-          resume: parsed.resume || defaultPortfolioData.resume,
-          contactExtra: parsed.contactExtra || defaultPortfolioData.contactExtra,
-          sectionVisibility: parsed.sectionVisibility || defaultPortfolioData.sectionVisibility
-        };
-      }
-    } catch (error) {
-      console.error("Failed to parse stored portfolio data from localStorage:", error);
-    }
-  }
   return memoryPortfolioData;
 };
 
@@ -861,14 +830,6 @@ export const savePortfolioData = (data: PortfolioData): void => {
     contactExtra: data.contactExtra || defaultPortfolioData.contactExtra,
     sectionVisibility: data.sectionVisibility || defaultPortfolioData.sectionVisibility
   };
-
-  if (!isTursoActive && typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(memoryPortfolioData));
-    } catch (error) {
-      console.error("Failed to save portfolio data to localStorage:", error);
-    }
-  }
 
   // Trigger custom event to notify listeners of changes
   if (typeof window !== "undefined") {

@@ -121,7 +121,7 @@ export const savePortfolioToDb = async (data: PortfolioData): Promise<boolean> =
 };
 
 /**
- * Saves a contact message to the Turso database or fallback localStorage
+ * Saves a contact message to the Turso database
  */
 export const saveContactMessage = async (
   name: string,
@@ -130,26 +130,7 @@ export const saveContactMessage = async (
   message: string
 ): Promise<boolean> => {
   if (!isTursoActive) {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("contact_messages") || "[]";
-        const messages = JSON.parse(stored);
-        const newMsg = {
-          id: Date.now(),
-          name,
-          email,
-          subject,
-          message,
-          created_at: new Date().toISOString()
-        };
-        messages.push(newMsg);
-        localStorage.setItem("contact_messages", JSON.stringify(messages));
-        window.dispatchEvent(new Event("contactMessagesUpdate"));
-        return true;
-      } catch (error) {
-        console.error("Failed to save contact message to localStorage:", error);
-      }
-    }
+    console.error("Database connection inactive. Cannot save contact message.");
     return false;
   }
 
@@ -167,19 +148,11 @@ export const saveContactMessage = async (
 };
 
 /**
- * Fetches all contact messages from the database or fallback localStorage
+ * Fetches all contact messages from the database
  */
 export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
   if (!isTursoActive) {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("contact_messages") || "[]";
-        const messages = JSON.parse(stored) as ContactMessage[];
-        return [...messages].reverse(); // newest first
-      } catch (error) {
-        console.error("Failed to fetch contact messages from localStorage:", error);
-      }
-    }
+    console.error("Database connection inactive. Cannot fetch contact messages.");
     return [];
   }
 
@@ -205,18 +178,7 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
  */
 export const deleteContactMessage = async (id: number): Promise<boolean> => {
   if (!isTursoActive) {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("contact_messages") || "[]";
-        const messages = JSON.parse(stored) as ContactMessage[];
-        const filtered = messages.filter((m) => m.id !== id);
-        localStorage.setItem("contact_messages", JSON.stringify(filtered));
-        window.dispatchEvent(new Event("contactMessagesUpdate"));
-        return true;
-      } catch (error) {
-        console.error("Failed to delete contact message from localStorage:", error);
-      }
-    }
+    console.error("Database connection inactive. Cannot delete contact message.");
     return false;
   }
 
