@@ -8,7 +8,7 @@ import {
 import { toast } from "sonner";
 import {
   getPortfolioData, savePortfolioData, PortfolioData,
-  ProjectData, CertificationData, SkillCategory, AboutHighlight,
+  ProjectData, CertificationData, SkillCategory, SkillItem, AboutHighlight,
   ExperienceData, EducationData, AchievementItem, ResumeData, ContactExtraData,
   getSectionVisibility, SectionVisibility
 } from "@/lib/portfolioData";
