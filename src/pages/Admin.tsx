@@ -745,10 +745,13 @@ const Admin = () => {
     relevantCoursework: [], projects: [], achievements: [], activities: [], certificates: []
   });
   const [eduCoursesText, setEduCoursesText] = useState("");
-  const [eduProjText, setEduProjText] = useState("");
+  const [eduProjectsList, setEduProjectsList] = useState<string[]>([]);
+  const [eduProjectInput, setEduProjectInput] = useState("");
   const [eduAchText, setEduAchText] = useState("");
-  const [eduActText, setEduActText] = useState("");
-  const [eduCertsText, setEduCertsText] = useState("");
+  const [eduActivitiesList, setEduActivitiesList] = useState<string[]>([]);
+  const [eduActivityInput, setEduActivityInput] = useState("");
+  const [eduCertificatesList, setEduCertificatesList] = useState<string[]>([]);
+  const [eduCertificateInput, setEduCertificateInput] = useState("");
   const [editingEduIndex, setEditingEduIndex] = useState<number | null>(null);
 
   const handleAddEducation = (e: React.FormEvent) => {
@@ -770,10 +773,10 @@ const Admin = () => {
         duration: newEdu.duration || "",
         cgpa: newEdu.cgpa || "",
         relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
-        projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
+        projects: eduProjectsList,
         achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
-        activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
-        certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
+        activities: eduActivitiesList,
+        certificates: eduCertificatesList,
       };
       setPortfolioData({
         ...portfolioData,
@@ -791,10 +794,10 @@ const Admin = () => {
         duration: newEdu.duration || "",
         cgpa: newEdu.cgpa || "",
         relevantCoursework: eduCoursesText.split(",").map(c => c.trim()).filter(Boolean),
-        projects: eduProjText.split(",").map(p => p.trim()).filter(Boolean),
+        projects: eduProjectsList,
         achievements: eduAchText.split("\n").map(a => a.trim()).filter(Boolean),
-        activities: eduActText.split(",").map(a => a.trim()).filter(Boolean),
-        certificates: eduCertsText.split(",").map(c => c.trim()).filter(Boolean),
+        activities: eduActivitiesList,
+        certificates: eduCertificatesList,
       };
       setPortfolioData({
         ...portfolioData,
@@ -805,10 +808,13 @@ const Admin = () => {
 
     setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
     setEduCoursesText("");
-    setEduProjText("");
+    setEduProjectsList([]);
+    setEduProjectInput("");
     setEduAchText("");
-    setEduActText("");
-    setEduCertsText("");
+    setEduActivitiesList([]);
+    setEduActivityInput("");
+    setEduCertificatesList([]);
+    setEduCertificateInput("");
   };
 
   const handleSelectEduForEdit = (index: number) => {
@@ -823,10 +829,13 @@ const Admin = () => {
       cgpa: edu.cgpa
     });
     setEduCoursesText((edu.relevantCoursework || []).join(", "));
-    setEduProjText((edu.projects || []).join(", "));
+    setEduProjectsList(edu.projects || []);
+    setEduProjectInput("");
     setEduAchText((edu.achievements || []).join("\n"));
-    setEduActText((edu.activities || []).join(", "));
-    setEduCertsText((edu.certificates || []).join(", "));
+    setEduActivitiesList(edu.activities || []);
+    setEduActivityInput("");
+    setEduCertificatesList(edu.certificates || []);
+    setEduCertificateInput("");
 
     const element = document.getElementById("admin-education-form");
     if (element) {
@@ -845,10 +854,13 @@ const Admin = () => {
       setEditingEduIndex(null);
       setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
       setEduCoursesText("");
-      setEduProjText("");
+      setEduProjectsList([]);
+      setEduProjectInput("");
       setEduAchText("");
-      setEduActText("");
-      setEduCertsText("");
+      setEduActivitiesList([]);
+      setEduActivityInput("");
+      setEduCertificatesList([]);
+      setEduCertificateInput("");
     }
   };
 
@@ -2477,36 +2489,161 @@ const Admin = () => {
                     />
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground font-semibold">Academic Projects (comma separated)</label>
-                      <input
-                        type="text"
-                        value={eduProjText}
-                        onChange={(e) => setEduProjText(e.target.value)}
-                        placeholder="ERP portal, Guess Game"
-                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
-                      />
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    {/* Academic Projects (add one by one) */}
+                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
+                      <label className="text-xs text-muted-foreground font-bold block mb-1">Academic Projects</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={eduProjectInput}
+                          onChange={(e) => setEduProjectInput(e.target.value)}
+                          placeholder="e.g. ERP portal"
+                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (eduProjectInput.trim()) {
+                                setEduProjectsList([...eduProjectsList, eduProjectInput.trim()]);
+                                setEduProjectInput("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (eduProjectInput.trim()) {
+                              setEduProjectsList([...eduProjectsList, eduProjectInput.trim()]);
+                              setEduProjectInput("");
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {eduProjectsList.map((proj, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                            {proj}
+                            <button
+                              type="button"
+                              onClick={() => setEduProjectsList(eduProjectsList.filter((_, idx) => idx !== i))}
+                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                        {eduProjectsList.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground font-semibold">Activities (comma separated)</label>
-                      <input
-                        type="text"
-                        value={eduActText}
-                        onChange={(e) => setEduActText(e.target.value)}
-                        placeholder="Coding Club, Symposium organizer"
-                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
-                      />
+
+                    {/* Activities (add one by one) */}
+                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
+                      <label className="text-xs text-muted-foreground font-bold block mb-1">Activities</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={eduActivityInput}
+                          onChange={(e) => setEduActivityInput(e.target.value)}
+                          placeholder="e.g. Coding Club"
+                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (eduActivityInput.trim()) {
+                                setEduActivitiesList([...eduActivitiesList, eduActivityInput.trim()]);
+                                setEduActivityInput("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (eduActivityInput.trim()) {
+                              setEduActivitiesList([...eduActivitiesList, eduActivityInput.trim()]);
+                              setEduActivityInput("");
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {eduActivitiesList.map((act, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                            {act}
+                            <button
+                              type="button"
+                              onClick={() => setEduActivitiesList(eduActivitiesList.filter((_, idx) => idx !== i))}
+                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                        {eduActivitiesList.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground font-semibold">Certificates (comma separated)</label>
-                      <input
-                        type="text"
-                        value={eduCertsText}
-                        onChange={(e) => setEduCertsText(e.target.value)}
-                        placeholder="AWS Academy, Java great learning"
-                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground"
-                      />
+
+                    {/* Certificates (add one by one) */}
+                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
+                      <label className="text-xs text-muted-foreground font-bold block mb-1">Certificates</label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={eduCertificateInput}
+                          onChange={(e) => setEduCertificateInput(e.target.value)}
+                          placeholder="e.g. AWS Academy"
+                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (eduCertificateInput.trim()) {
+                                setEduCertificatesList([...eduCertificatesList, eduCertificateInput.trim()]);
+                                setEduCertificateInput("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (eduCertificateInput.trim()) {
+                              setEduCertificatesList([...eduCertificatesList, eduCertificateInput.trim()]);
+                              setEduCertificateInput("");
+                            }
+                          }}
+                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {eduCertificatesList.map((cert, i) => (
+                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                            {cert}
+                            <button
+                              type="button"
+                              onClick={() => setEduCertificatesList(eduCertificatesList.filter((_, idx) => idx !== i))}
+                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                            >
+                              &times;
+                            </button>
+                          </span>
+                        ))}
+                        {eduCertificatesList.length === 0 && (
+                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -2518,10 +2655,13 @@ const Admin = () => {
                           setEditingEduIndex(null);
                           setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
                           setEduCoursesText("");
-                          setEduProjText("");
+                          setEduProjectsList([]);
+                          setEduProjectInput("");
                           setEduAchText("");
-                          setEduActText("");
-                          setEduCertsText("");
+                          setEduActivitiesList([]);
+                          setEduActivityInput("");
+                          setEduCertificatesList([]);
+                          setEduCertificateInput("");
                           toast.info("Edit cancelled.");
                         }}
                         className="flex-1 py-2 bg-muted text-muted-foreground border border-border rounded-lg font-semibold text-xs hover:bg-accent transition-colors"
