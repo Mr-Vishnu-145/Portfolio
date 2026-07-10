@@ -860,9 +860,19 @@ const Admin = () => {
     credentialId: "",
     issueDate: "",
     category: "General",
+    skillsLearned: [],
   });
-  const [certSkillsText, setCertSkillsText] = useState("");
+  const [certSkillInput, setCertSkillInput] = useState("");
   const [editingCertIndex, setEditingCertIndex] = useState<number | null>(null);
+
+  const existingCategories = Array.from(new Set([
+    "General",
+    "Cloud",
+    "Programming",
+    "Database",
+    "Testing",
+    ...portfolioData.certifications.map(c => c.category).filter(Boolean)
+  ]));
 
   const handleAddCert = (e: React.FormEvent) => {
     e.preventDefault();
@@ -871,7 +881,7 @@ const Admin = () => {
       return;
     }
     const targetCerts = [...portfolioData.certifications];
-    const skillsArray = certSkillsText.split(",").map(s => s.trim()).filter(Boolean);
+    const skillsArray = newCert.skillsLearned || [];
 
     if (editingCertIndex !== null) {
       // Update mode
@@ -917,8 +927,9 @@ const Admin = () => {
       credentialId: "",
       issueDate: "",
       category: "General",
+      skillsLearned: [],
     });
-    setCertSkillsText("");
+    setCertSkillInput("");
   };
 
   const handleSelectCertForEdit = (index: number) => {
@@ -932,8 +943,9 @@ const Admin = () => {
       credentialId: cert.credentialId || "",
       issueDate: cert.issueDate || "",
       category: cert.category || "General",
+      skillsLearned: cert.skillsLearned || [],
     });
-    setCertSkillsText((cert.skillsLearned || []).join(", "));
+    setCertSkillInput("");
 
     const element = document.getElementById("admin-cert-form");
     if (element) {
@@ -957,8 +969,9 @@ const Admin = () => {
         credentialId: "",
         issueDate: "",
         category: "General",
+        skillsLearned: [],
       });
-      setCertSkillsText("");
+      setCertSkillInput("");
     } else if (editingCertIndex !== null && editingCertIndex > index) {
       setEditingCertIndex(editingCertIndex - 1);
     }
@@ -2661,27 +2674,78 @@ const Admin = () => {
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-xs text-muted-foreground font-semibold">Category</label>
-                      <select
-                        value={newCert.category || "General"}
-                        onChange={(e) => setNewCert({ ...newCert, category: e.target.value as any })}
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm bg-background"
-                      >
-                        <option value="General">General</option>
-                        <option value="Cloud">Cloud</option>
-                        <option value="Programming">Programming</option>
-                        <option value="Database">Database</option>
-                        <option value="Testing">Testing</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground font-semibold">Skills Learned (Comma-separated)</label>
                       <input
                         type="text"
-                        value={certSkillsText}
-                        onChange={(e) => setCertSkillsText(e.target.value)}
-                        placeholder="e.g. React, Tailwind CSS, Node.js"
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                        list="cert-categories-list"
+                        value={newCert.category || ""}
+                        onChange={(e) => setNewCert({ ...newCert, category: e.target.value })}
+                        placeholder="Select or type a category"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm bg-background"
                       />
+                      <datalist id="cert-categories-list">
+                        {existingCategories.map(cat => (
+                          <option key={cat} value={cat} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Skills Learned</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={certSkillInput}
+                          onChange={(e) => setCertSkillInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (!certSkillInput.trim()) return;
+                              const currentSkills = newCert.skillsLearned || [];
+                              if (!currentSkills.includes(certSkillInput.trim())) {
+                                setNewCert({ ...newCert, skillsLearned: [...currentSkills, certSkillInput.trim()] });
+                              }
+                              setCertSkillInput("");
+                            }
+                          }}
+                          placeholder="Type a skill and click Add"
+                          className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!certSkillInput.trim()) return;
+                            const currentSkills = newCert.skillsLearned || [];
+                            if (!currentSkills.includes(certSkillInput.trim())) {
+                              setNewCert({ ...newCert, skillsLearned: [...currentSkills, certSkillInput.trim()] });
+                            }
+                            setCertSkillInput("");
+                          }}
+                          className="px-4 py-2 bg-accent text-accent-foreground border border-border hover:border-primary font-semibold text-xs rounded-lg transition-colors shrink-0"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      
+                      {/* Rendered Skills Badges */}
+                      {newCert.skillsLearned && newCert.skillsLearned.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2 p-1.5 rounded-lg border border-border/40 bg-accent/20">
+                          {newCert.skillsLearned.map((skill, idx) => (
+                            <span key={skill} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                              {skill}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const list = [...(newCert.skillsLearned || [])];
+                                  list.splice(idx, 1);
+                                  setNewCert({ ...newCert, skillsLearned: list });
+                                }}
+                                className="font-bold text-xs"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
