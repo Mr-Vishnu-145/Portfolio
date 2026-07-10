@@ -165,11 +165,29 @@ const Admin = () => {
     x: 10,
     y: 10,
     width: 80,
-    aspect: 1,
+    height: 80,
   });
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Center square selection dynamically when image loads
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    imgRef.current = e.currentTarget;
+
+    const size = Math.min(width, height) * 0.8;
+    const x = (width - size) / 2;
+    const y = (height - size) / 2;
+
+    setCrop({
+      unit: "px",
+      x,
+      y,
+      width: size,
+      height: size,
+    });
+  };
 
   // Avatar upload and remove handlers
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,7 +201,7 @@ const Admin = () => {
           x: 10,
           y: 10,
           width: 80,
-          aspect: 1,
+          height: 80,
         });
         setCompletedCrop(null);
         setIsCropping(true);
@@ -3376,6 +3394,7 @@ const Admin = () => {
                   src={imageSrc}
                   alt="Source"
                   className="max-w-full max-h-[360px] md:max-h-[400px] object-contain block select-none"
+                  onLoad={onImageLoad}
                 />
               </ReactCrop>
             </div>
