@@ -197,7 +197,7 @@ const Certifications = () => {
                   </span>
                 )}
                 
-                {(cert.verifyUrl?.startsWith("data:") || cert.downloadUrl) && (
+                {(cert.verifyUrl?.startsWith("data:") || (cert.downloadUrl && cert.downloadUrl !== "#")) && (
                   <a
                     href={cert.verifyUrl?.startsWith("data:") ? cert.verifyUrl : cert.downloadUrl}
                     download={cert.verifyUrl?.startsWith("data:") ? `${cert.name.replace(/\s+/g, "_")}_Certificate.${cert.verifyUrl.startsWith("data:application/pdf") ? "pdf" : "jpg"}` : undefined}

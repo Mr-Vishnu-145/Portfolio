@@ -327,17 +327,13 @@ const Admin = () => {
     setPortfolioData(storeData);
   }, [storeData]);
 
-  // Debounced auto-save to Zustand store for real-time live database sync
+  // Synchronize local memory data state to Zustand store locally for previewing changes in memory, without writing to the database
   useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (JSON.stringify(portfolioData) !== JSON.stringify(storeData)) {
-        const success = await usePortfolioStore.getState().updateData(portfolioData);
-        if (!success) {
-          toast.error("Database auto-save failed! Please verify connection.");
-        }
-      }
-    }, 400);
-    return () => clearTimeout(timer);
+    if (JSON.stringify(portfolioData) !== JSON.stringify(storeData)) {
+      // Save locally to in-memory state and dispatch update event, skipping slow database network writes
+      savePortfolioData(portfolioData);
+      usePortfolioStore.setState({ data: portfolioData });
+    }
   }, [portfolioData, storeData]);
 
   const [currentPass, setCurrentPass] = useState("");
@@ -1279,9 +1275,14 @@ const Admin = () => {
             >
               Lock Panel
             </button>
+            {JSON.stringify(portfolioData) !== JSON.stringify(storeData) && (
+              <span className="text-[10px] text-amber-500 font-bold flex items-center gap-1 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 animate-pulse shrink-0">
+                ⚠️ Unsaved Changes
+              </span>
+            )}
             <button
               onClick={handleSave}
-              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm transition-opacity flex items-center gap-2 shadow-lg"
+              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm transition-opacity flex items-center gap-2 shadow-lg shrink-0"
             >
               <Save size={16} />
               Save Updates
