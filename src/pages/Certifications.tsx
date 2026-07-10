@@ -135,8 +135,23 @@ const Certifications = () => {
                   <Award size={20} />
                 </div>
                 
-                <h3 className="font-bold text-foreground text-sm leading-snug mb-1">{cert.name}</h3>
-                <p className="text-xs text-muted-foreground font-mono">{cert.org}</p>
+                <div className="flex justify-between items-start gap-3 mb-1">
+                  <h3 className="font-bold text-foreground text-sm leading-snug">{cert.name}</h3>
+                  {cert.issueDate && (
+                    <span className="text-[9px] font-mono bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-bold shrink-0">
+                      {cert.issueDate}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs text-muted-foreground font-mono">{cert.org}</p>
+                  {cert.category && (
+                    <span className="text-[8px] uppercase tracking-wider font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">
+                      {cert.category}
+                    </span>
+                  )}
+                </div>
 
                 {cert.credentialId && (
                   <div className="mt-3 text-[10px] text-muted-foreground font-mono">

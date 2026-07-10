@@ -32,9 +32,45 @@ const CertificationsSection = () => {
               style={{ animationDelay: `${0.05 + i * 0.08}s` }}
             >
               <div>
-                <Award size={20} className="text-primary mb-3 group-hover:scale-110 transition-transform" />
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <Award size={20} className="text-primary group-hover:scale-110 transition-transform" />
+                  {cert.issueDate && (
+                    <span className="text-[9px] font-mono bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-bold shrink-0">
+                      {cert.issueDate}
+                    </span>
+                  )}
+                </div>
                 <h3 className="font-semibold text-foreground text-sm mb-1 leading-tight">{cert.name}</h3>
-                <p className="text-xs text-muted-foreground">{cert.org}</p>
+                
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-xs text-muted-foreground font-mono">{cert.org}</p>
+                  {cert.category && (
+                    <span className="text-[8px] uppercase tracking-wider font-bold bg-primary/10 text-primary px-1 py-0.5 rounded border border-primary/20">
+                      {cert.category}
+                    </span>
+                  )}
+                </div>
+
+                {cert.credentialId && (
+                  <p className="text-[10px] text-muted-foreground font-mono mt-1 mb-2">
+                    ID: <span className="text-foreground font-bold">{cert.credentialId}</span>
+                  </p>
+                )}
+
+                {cert.skillsLearned && cert.skillsLearned.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-3 pt-2.5 border-t border-border/50">
+                    {cert.skillsLearned.slice(0, 3).map(skill => (
+                      <span key={skill} className="text-[9px] px-1.5 py-0.5 rounded bg-background border border-border">
+                        {skill}
+                      </span>
+                    ))}
+                    {cert.skillsLearned.length > 3 && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-background border border-border text-muted-foreground font-bold">
+                        +{cert.skillsLearned.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {cert.verifyUrl && (

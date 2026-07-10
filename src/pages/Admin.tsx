@@ -2699,6 +2699,7 @@ const Admin = () => {
                                 });
                                 reader.readAsDataURL(file);
                               }
+                              e.target.value = ""; // Reset value to support selecting same file again
                             }}
                             className="hidden"
                           />
