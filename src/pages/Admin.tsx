@@ -324,15 +324,13 @@ const Admin = () => {
 
   const saveToDbAndState = async (newData: PortfolioData) => {
     setPortfolioData(newData);
-    savePortfolioData(newData);
-    usePortfolioStore.setState({ data: newData });
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("portfolioDataUpdate"));
-    }
     try {
       const success = await usePortfolioStore.getState().updateData(newData);
       if (success) {
         toast.success("Changes saved successfully to database!");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("portfolioDataUpdate"));
+        }
       } else {
         toast.error("Failed to write to database. Local changes applied.");
       }
@@ -342,18 +340,10 @@ const Admin = () => {
     }
   };
 
+  // Keep local portfolioData in sync when DB poll brings fresh data
   useEffect(() => {
     setPortfolioData(storeData);
   }, [storeData]);
-
-  // Synchronize local memory data state to Zustand store locally for previewing changes in memory, without writing to the database
-  useEffect(() => {
-    if (JSON.stringify(portfolioData) !== JSON.stringify(storeData)) {
-      // Save locally to in-memory state and dispatch update event, skipping slow database network writes
-      savePortfolioData(portfolioData);
-      usePortfolioStore.setState({ data: portfolioData });
-    }
-  }, [portfolioData, storeData]);
 
   const [currentPass, setCurrentPass] = useState("");
   const [newPass, setNewPass] = useState("");
