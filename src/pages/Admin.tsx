@@ -323,6 +323,23 @@ const Admin = () => {
     toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} section visibility updated!`);
   };
 
+  const saveToDbAndState = async (newData: PortfolioData) => {
+    setPortfolioData(newData);
+    savePortfolioData(newData);
+    usePortfolioStore.setState({ data: newData });
+    try {
+      const success = await usePortfolioStore.getState().updateData(newData);
+      if (success) {
+        toast.success("Changes saved successfully to database!");
+      } else {
+        toast.error("Failed to write to database. Local changes applied.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Database synchronization failed!");
+    }
+  };
+
   useEffect(() => {
     setPortfolioData(storeData);
   }, [storeData]);
@@ -728,7 +745,7 @@ const Admin = () => {
         }
         return proj;
       });
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         projects: updatedProjects
       });
@@ -772,7 +789,7 @@ const Admin = () => {
         solutionsImplemented,
         lessonsLearned,
       };
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         projects: [...portfolioData.projects, projectToAdd]
       });
@@ -794,7 +811,7 @@ const Admin = () => {
   const handleRemoveProject = (index: number) => {
     const updatedProjects = [...portfolioData.projects];
     updatedProjects.splice(index, 1);
-    setPortfolioData({ ...portfolioData, projects: updatedProjects });
+    saveToDbAndState({ ...portfolioData, projects: updatedProjects });
   };
 
   const handleSelectProjectForEdit = (proj: ProjectData) => {
@@ -869,7 +886,7 @@ const Admin = () => {
         category: newCert.category || "General",
         skillsLearned: skillsArray,
       };
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         certifications: targetCerts
       });
@@ -887,7 +904,7 @@ const Admin = () => {
         category: newCert.category || "General",
         skillsLearned: skillsArray,
       };
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         certifications: [...portfolioData.certifications, certToAdd]
       });
@@ -930,7 +947,7 @@ const Admin = () => {
   const handleRemoveCert = (index: number) => {
     const updatedCerts = [...portfolioData.certifications];
     updatedCerts.splice(index, 1);
-    setPortfolioData({ ...portfolioData, certifications: updatedCerts });
+    saveToDbAndState({ ...portfolioData, certifications: updatedCerts });
     if (editingCertIndex === index) {
       setEditingCertIndex(null);
       setNewCert({
