@@ -3363,7 +3363,7 @@ const Admin = () => {
             </div>
 
             {/* Cropper Container */}
-            <div className="relative w-full overflow-auto max-h-[60vh] p-4 bg-background/50 flex justify-center items-center">
+            <div className="relative w-full bg-background/50 flex justify-center items-center p-4 min-h-[300px] overflow-hidden">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
@@ -3375,7 +3375,7 @@ const Admin = () => {
                   ref={imgRef}
                   src={imageSrc}
                   alt="Source"
-                  className="max-w-full max-h-80 object-contain"
+                  className="max-w-full max-h-[50vh] md:max-h-[60vh] object-contain block select-none"
                 />
               </ReactCrop>
             </div>
