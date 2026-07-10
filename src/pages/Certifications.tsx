@@ -8,6 +8,7 @@ const Certifications = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
+  const [activePreview, setActivePreview] = useState<{ name: string; url: string } | null>(null);
 
   useEffect(() => {
     setCerts(getPortfolioData().certifications);
@@ -161,15 +162,22 @@ const Certifications = () => {
               <div className="flex gap-2 mt-6 pt-4 border-t border-border/50">
                 <a
                   href={cert.verifyUrl || "#"}
-                  target="_blank"
+                  target={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? "_self" : "_blank"}
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (cert.verifyUrl && cert.verifyUrl.startsWith("data:")) {
+                      e.preventDefault();
+                      setActivePreview({ name: cert.name, url: cert.verifyUrl });
+                    }
+                  }}
                   className="flex-1 py-1.5 px-3 rounded-lg bg-accent text-accent-foreground text-center text-xs font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-1"
                 >
                   <ExternalLink size={12} />
                   Verify
                 </a>
                 <a
-                  href={cert.downloadUrl || "#"}
+                  href={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? cert.verifyUrl : (cert.downloadUrl || "#")}
+                  download={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? `${cert.name.replace(/\s+/g, "_")}_Certificate.${cert.verifyUrl.startsWith("data:application/pdf") ? "pdf" : "jpg"}` : undefined}
                   className="py-1.5 px-2.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center"
                   title="Download File"
                 >
@@ -226,8 +234,14 @@ const Certifications = () => {
               <div className="flex gap-2 pt-3 border-t border-border/50">
                 <a
                   href={cert.verifyUrl || "#"}
-                  target="_blank"
+                  target={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? "_self" : "_blank"}
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (cert.verifyUrl && cert.verifyUrl.startsWith("data:")) {
+                      e.preventDefault();
+                      setActivePreview({ name: cert.name, url: cert.verifyUrl });
+                    }
+                  }}
                   className="py-1 px-3 rounded bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 flex items-center gap-1"
                 >
                   <ExternalLink size={11} /> Verify
@@ -241,6 +255,60 @@ const Certifications = () => {
               <p className="text-muted-foreground text-sm">No credentials found matching the selections.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
+      {activePreview && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-4xl rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-scale-in max-h-[90vh]">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card shrink-0">
+              <h3 className="font-bold text-foreground text-base">{activePreview.name} - Certificate Preview</h3>
+              <button
+                onClick={() => setActivePreview(null)}
+                className="text-muted-foreground hover:text-foreground font-bold text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Content Container */}
+            <div className="relative w-full bg-background/50 flex justify-center items-center p-4 flex-1 overflow-auto min-h-[300px]">
+              {activePreview.url.startsWith("data:application/pdf") ? (
+                <iframe
+                  src={activePreview.url}
+                  title="PDF Preview"
+                  className="w-full h-[65vh] rounded-lg border border-border bg-white"
+                />
+              ) : activePreview.url.startsWith("data:image/") ? (
+                <img
+                  src={activePreview.url}
+                  alt={activePreview.name}
+                  className="max-w-full max-h-[65vh] object-contain rounded-lg shadow-sm"
+                />
+              ) : (
+                <p className="text-muted-foreground text-sm font-mono">Unable to render preview.</p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 border-t border-border bg-card shrink-0 flex justify-end gap-2">
+              <a
+                href={activePreview.url}
+                download={`${activePreview.name.replace(/\s+/g, "_")}_Certificate.${activePreview.url.startsWith("data:application/pdf") ? "pdf" : "jpg"}`}
+                className="px-4 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-xl text-xs font-semibold transition-opacity flex items-center gap-1.5"
+              >
+                <Download size={14} /> Download Certificate
+              </a>
+              <button
+                onClick={() => setActivePreview(null)}
+                className="px-4 py-2 border border-border text-muted-foreground hover:bg-accent rounded-xl text-xs font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

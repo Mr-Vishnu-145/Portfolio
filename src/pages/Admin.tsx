@@ -840,7 +840,7 @@ const Admin = () => {
   };
 
   // Certifications Handlers
-  const [newCert, setNewCert] = useState<Partial<CertificationData>>({ name: "", org: "" });
+  const [newCert, setNewCert] = useState<Partial<CertificationData>>({ name: "", org: "", verifyUrl: "" });
 
   const handleAddCert = (e: React.FormEvent) => {
     e.preventDefault();
@@ -852,12 +852,13 @@ const Admin = () => {
       id: `cert-${Date.now()}`,
       name: newCert.name,
       org: newCert.org,
+      verifyUrl: newCert.verifyUrl || "",
     };
     setPortfolioData({
       ...portfolioData,
       certifications: [...portfolioData.certifications, certToAdd]
     });
-    setNewCert({ name: "", org: "" });
+    setNewCert({ name: "", org: "", verifyUrl: "" });
     toast.success("Certification added!");
   };
 
@@ -2501,40 +2502,93 @@ const Admin = () => {
 
             {/* CERTIFICATIONS SECTION FORM */}
             {activeTab === "certifications" && (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-fade-in">
                 <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Certifications</h2>
 
                 {/* Add Certificate Form */}
-                <form onSubmit={handleAddCert} className="bg-background border border-border p-5 rounded-xl space-y-4">
+                <form onSubmit={handleAddCert} className="bg-background border border-border p-5 rounded-xl space-y-4 shadow-sm">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
                     <Plus size={18} className="text-primary" /> Add Certification
                   </h3>
 
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Certification Name</label>
+                    <label className="text-xs text-muted-foreground font-semibold">Certification Name</label>
                     <input
                       type="text"
                       value={newCert.name}
                       onChange={(e) => setNewCert({ ...newCert, name: e.target.value })}
                       placeholder="e.g. AWS Certified Solutions Architect"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Issuing Organization</label>
+                    <label className="text-xs text-muted-foreground font-semibold">Issuing Organization</label>
                     <input
                       type="text"
                       value={newCert.org}
                       onChange={(e) => setNewCert({ ...newCert, org: e.target.value })}
                       placeholder="e.g. AWS Academy / Udemy"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
                     />
+                  </div>
+
+                  <div className="grid gap-4 border-t border-border pt-4">
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">Verification Method</label>
+                    
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase text-muted-foreground block font-semibold">Option A: Paste Verification URL</label>
+                      <input
+                        type="url"
+                        value={newCert.verifyUrl && !newCert.verifyUrl.startsWith("data:") ? newCert.verifyUrl : ""}
+                        onChange={(e) => setNewCert({ ...newCert, verifyUrl: e.target.value })}
+                        placeholder="https://verify.org/badge/123..."
+                        className="w-full px-3 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase text-muted-foreground block font-semibold">Option B: Upload Certificate File (PDF or Image)</label>
+                      <div className="flex items-center gap-3">
+                        <label className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg cursor-pointer hover:opacity-90 transition-opacity">
+                          Upload Document File
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files.length > 0) {
+                                const file = e.target.files[0];
+                                const reader = new FileReader();
+                                reader.addEventListener("load", () => {
+                                  setNewCert({ ...newCert, verifyUrl: reader.result as string });
+                                  toast.success(`"${file.name}" uploaded successfully!`);
+                                });
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                        {newCert.verifyUrl && newCert.verifyUrl.startsWith("data:") && (
+                          <div className="text-[10px] text-primary font-mono font-bold flex items-center gap-1.5 bg-primary/10 px-2 py-1 rounded border border-primary/25">
+                            <span>✅ Document loaded ({newCert.verifyUrl.startsWith("data:application/pdf") ? "PDF" : "Image"})</span>
+                            <button
+                              type="button"
+                              onClick={() => setNewCert({ ...newCert, verifyUrl: "" })}
+                              className="text-destructive font-bold text-xs hover:opacity-85"
+                            >
+                              &times;
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Accepts image files or PDF documents. The document will load into the database for immediate offline previews.</p>
+                    </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5 mt-2"
                   >
                     <Plus size={16} /> Add Certification
                   </button>
@@ -2545,20 +2599,30 @@ const Admin = () => {
                   <h3 className="font-semibold text-foreground font-serif">Current Certifications ({portfolioData.certifications.length})</h3>
                   <div className="grid gap-2">
                     {portfolioData.certifications.map((c, idx) => (
-                      <div key={c.name + idx} className="p-3 rounded-lg bg-background border border-border flex justify-between items-center gap-4">
+                      <div key={c.name + idx} className="p-4 rounded-xl bg-background border border-border flex justify-between items-center gap-4 shadow-sm">
                         <div>
                           <span className="font-medium text-foreground text-sm block">{c.name}</span>
                           <span className="text-xs text-muted-foreground">{c.org}</span>
+                          {c.verifyUrl && (
+                            <span className="text-[10px] text-primary block mt-1.5 font-mono bg-primary/5 px-2 py-0.5 rounded border border-primary/10 w-fit">
+                              {c.verifyUrl.startsWith("data:") 
+                                ? (c.verifyUrl.startsWith("data:application/pdf") ? "📄 Attached PDF Certificate" : "🖼️ Attached Image Certificate")
+                                : `🔗 External Link: ${c.verifyUrl.substring(0, 45)}...`}
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={() => handleRemoveCert(idx)}
-                          className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-all shrink-0 border border-border/50 hover:border-destructive/20"
                           title="Delete Certificate"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
                     ))}
+                    {portfolioData.certifications.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic text-center py-6 bg-card border border-dashed rounded-xl">No certifications added yet.</p>
+                    )}
                   </div>
                 </div>
               </div>
