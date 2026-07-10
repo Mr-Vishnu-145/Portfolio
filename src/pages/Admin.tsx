@@ -310,13 +310,13 @@ const Admin = () => {
 
   const visibility = getSectionVisibility(portfolioData);
 
-  const handleToggleSection = (section: keyof SectionVisibility) => {
+  const handleToggleSection = async (section: keyof SectionVisibility) => {
     const currentVis = getSectionVisibility(portfolioData);
     const updatedVis = {
       ...currentVis,
       [section]: !currentVis[section]
     };
-    saveToDbAndState({
+    await saveToDbAndState({
       ...portfolioData,
       sectionVisibility: updatedVis
     });

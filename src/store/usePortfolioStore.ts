@@ -5,21 +5,30 @@ import { fetchPortfolioFromDb, savePortfolioToDb } from "@/lib/turso";
 interface PortfolioState {
   data: PortfolioData;
   dbError: string | null;
+  isWriting: boolean; // write-lock: blocks polls during active DB writes
   load: () => void;
   loadFromDb: () => Promise<void>;
   updateData: (newData: PortfolioData) => Promise<boolean>;
 }
 
-export const usePortfolioStore = create<PortfolioState>((set) => ({
+export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   data: getPortfolioData(),
   dbError: null,
+  isWriting: false,
+
   load: () => set({ data: getPortfolioData() }),
+
   loadFromDb: async () => {
+    // Do NOT overwrite in-memory state while a write is in progress
+    if (get().isWriting) return;
+
     try {
       const dbData = await fetchPortfolioFromDb();
       if (dbData) {
         set({ dbError: null });
-        const currentData = usePortfolioStore.getState().data;
+        // After the fetch completes, check again — a write may have started
+        if (get().isWriting) return;
+        const currentData = get().data;
         if (JSON.stringify(currentData) !== JSON.stringify(dbData)) {
           savePortfolioData(dbData);
           set({ data: dbData });
@@ -35,7 +44,10 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
       set({ dbError: (error as Error).message || "Database load error." });
     }
   },
+
   updateData: async (newData: PortfolioData): Promise<boolean> => {
+    // Set write-lock BEFORE saving so polls are blocked during write
+    set({ isWriting: true });
     savePortfolioData(newData);
     set({ data: newData });
     try {
@@ -51,6 +63,9 @@ export const usePortfolioStore = create<PortfolioState>((set) => ({
       console.error("Zustand db update error:", error);
       set({ dbError: (error as Error).message || "Database write error." });
       return false;
+    } finally {
+      // Release write-lock after DB write completes (or fails)
+      set({ isWriting: false });
     }
   },
 }));
