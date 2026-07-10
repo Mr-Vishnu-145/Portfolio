@@ -2733,7 +2733,15 @@ const Admin = () => {
                         type="button"
                         onClick={() => {
                           setEditingCertIndex(null);
-                          setNewCert({ name: "", org: "", verifyUrl: "" });
+                          setNewCert({
+                            name: "",
+                            org: "",
+                            verifyUrl: "",
+                            credentialId: "",
+                            issueDate: "",
+                            category: "General",
+                          });
+                          setCertSkillsText("");
                           toast.info("Editing cancelled.");
                         }}
                         className="px-4 py-2.5 border border-border text-muted-foreground hover:bg-accent rounded-lg font-semibold text-sm transition-colors"
@@ -2747,12 +2755,39 @@ const Admin = () => {
                 {/* Certificates List */}
                 <div className="space-y-4 pt-4 border-t border-border">
                   <h3 className="font-semibold text-foreground font-serif">Current Certifications ({portfolioData.certifications.length})</h3>
-                  <div className="grid gap-2">
+                  <div className="grid gap-3">
                     {portfolioData.certifications.map((c, idx) => (
-                      <div key={c.name + idx} className="p-4 rounded-xl bg-background border border-border flex justify-between items-center gap-4 shadow-sm">
-                        <div>
-                          <span className="font-medium text-foreground text-sm block">{c.name}</span>
-                          <span className="text-xs text-muted-foreground">{c.org}</span>
+                      <div key={c.name + idx} className="p-4 rounded-xl bg-background border border-border flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm hover:border-primary/50 transition-all">
+                        <div className="space-y-2 flex-1">
+                          <div>
+                            <span className="font-semibold text-foreground text-sm block">{c.name}</span>
+                            <span className="text-xs text-muted-foreground font-medium">{c.org}</span>
+                          </div>
+
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-muted-foreground font-mono">
+                            {c.credentialId && (
+                              <span>ID: <span className="text-foreground font-bold">{c.credentialId}</span></span>
+                            )}
+                            {c.issueDate && (
+                              <span>Date: <span className="text-foreground font-bold">{c.issueDate}</span></span>
+                            )}
+                            {c.category && (
+                              <span className="px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-bold uppercase text-[8px] tracking-wider border border-border w-fit">
+                                {c.category}
+                              </span>
+                            )}
+                          </div>
+
+                          {c.skillsLearned && c.skillsLearned.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {c.skillsLearned.map(t => (
+                                <span key={t} className="px-1.5 py-0.5 text-[9px] font-mono rounded bg-primary/5 text-primary border border-primary/10">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
                           {c.verifyUrl && (
                             <span className="text-[10px] text-primary block mt-1.5 font-mono bg-primary/5 px-2 py-0.5 rounded border border-primary/10 w-fit">
                               {c.verifyUrl.startsWith("data:") 
@@ -2761,7 +2796,7 @@ const Admin = () => {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                           <button
                             type="button"
                             onClick={() => handleSelectCertForEdit(idx)}
