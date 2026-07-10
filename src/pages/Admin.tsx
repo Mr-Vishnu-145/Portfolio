@@ -809,9 +809,26 @@ const Admin = () => {
   };
 
   const handleRemoveProject = (index: number) => {
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    const deletedProj = portfolioData.projects[index];
+    if (!deletedProj) return;
+
     const updatedProjects = [...portfolioData.projects];
     updatedProjects.splice(index, 1);
     saveToDbAndState({ ...portfolioData, projects: updatedProjects });
+
+    toast.success(`Deleted project "${deletedProj.title}"`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const restoredProjects = [...portfolioData.projects];
+          restoredProjects.splice(index, 0, deletedProj);
+          saveToDbAndState({ ...portfolioData, projects: restoredProjects });
+          toast.success(`Restored project "${deletedProj.title}"`);
+        }
+      },
+      duration: 5000,
+    });
   };
 
   const handleSelectProjectForEdit = (proj: ProjectData) => {
@@ -957,6 +974,10 @@ const Admin = () => {
   };
 
   const handleRemoveCert = (index: number) => {
+    if (!window.confirm("Are you sure you want to delete this certification?")) return;
+    const deletedCert = portfolioData.certifications[index];
+    if (!deletedCert) return;
+
     const updatedCerts = [...portfolioData.certifications];
     updatedCerts.splice(index, 1);
     saveToDbAndState({ ...portfolioData, certifications: updatedCerts });
@@ -975,6 +996,19 @@ const Admin = () => {
     } else if (editingCertIndex !== null && editingCertIndex > index) {
       setEditingCertIndex(editingCertIndex - 1);
     }
+
+    toast.success(`Deleted certification "${deletedCert.name}"`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const restoredCerts = [...portfolioData.certifications];
+          restoredCerts.splice(index, 0, deletedCert);
+          saveToDbAndState({ ...portfolioData, certifications: restoredCerts });
+          toast.success(`Restored certification "${deletedCert.name}"`);
+        }
+      },
+      duration: 5000,
+    });
   };
 
   // Experience Handler
@@ -1020,9 +1054,25 @@ const Admin = () => {
 
   const handleRemoveExperience = (index: number) => {
     if (!window.confirm("Are you sure you want to delete this experience record?")) return;
+    const deletedExp = (portfolioData.experience || [])[index];
+    if (!deletedExp) return;
+
     const updated = [...(portfolioData.experience || [])];
     updated.splice(index, 1);
     saveToDbAndState({ ...portfolioData, experience: updated });
+
+    toast.success(`Deleted experience at "${deletedExp.companyName}"`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const restored = [...(portfolioData.experience || [])];
+          restored.splice(index, 0, deletedExp);
+          saveToDbAndState({ ...portfolioData, experience: restored });
+          toast.success(`Restored experience at "${deletedExp.companyName}"`);
+        }
+      },
+      duration: 5000,
+    });
   };
 
   // Education Handler
@@ -1134,6 +1184,9 @@ const Admin = () => {
 
   const handleRemoveEducation = (index: number) => {
     if (!window.confirm("Are you sure you want to delete this education record?")) return;
+    const deletedEdu = (portfolioData.education || [])[index];
+    if (!deletedEdu) return;
+
     const updated = [...(portfolioData.education || [])];
     updated.splice(index, 1);
     saveToDbAndState({ ...portfolioData, education: updated });
@@ -1149,6 +1202,19 @@ const Admin = () => {
       setEduCertificatesList([]);
       setEduCertificateInput("");
     }
+
+    toast.success(`Deleted education at "${deletedEdu.college}"`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const restored = [...(portfolioData.education || [])];
+          restored.splice(index, 0, deletedEdu);
+          saveToDbAndState({ ...portfolioData, education: restored });
+          toast.success(`Restored education at "${deletedEdu.college}"`);
+        }
+      },
+      duration: 5000,
+    });
   };
 
   // Achievements Handler
@@ -1181,9 +1247,25 @@ const Admin = () => {
 
   const handleRemoveAchievement = (index: number) => {
     if (!window.confirm("Are you sure you want to delete this achievement?")) return;
+    const deletedAch = (portfolioData.achievements || [])[index];
+    if (!deletedAch) return;
+
     const updated = [...(portfolioData.achievements || [])];
     updated.splice(index, 1);
     saveToDbAndState({ ...portfolioData, achievements: updated });
+
+    toast.success(`Deleted achievement "${deletedAch.title}"`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const restored = [...(portfolioData.achievements || [])];
+          restored.splice(index, 0, deletedAch);
+          saveToDbAndState({ ...portfolioData, achievements: restored });
+          toast.success(`Restored achievement "${deletedAch.title}"`);
+        }
+      },
+      duration: 5000,
+    });
   };
 
   // Resume & Contact Extra Updaters
