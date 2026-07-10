@@ -3346,9 +3346,9 @@ const Admin = () => {
       {/* Cropper Modal Overlay */}
       {isCropping && imageSrc && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border w-full max-w-lg rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-scale-in">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-scale-in max-h-[90vh]">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card shrink-0">
               <h3 className="font-bold text-foreground text-base">Crop Profile Picture</h3>
               <button
                 type="button"
@@ -3363,7 +3363,7 @@ const Admin = () => {
             </div>
 
             {/* Cropper Container */}
-            <div className="relative w-full bg-background/50 flex justify-center items-center p-4 min-h-[300px] overflow-hidden">
+            <div className="relative w-full bg-background/50 flex justify-center items-center p-4 overflow-y-auto flex-1 min-h-[200px]">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
@@ -3375,13 +3375,13 @@ const Admin = () => {
                   ref={imgRef}
                   src={imageSrc}
                   alt="Source"
-                  className="max-w-full max-h-[50vh] md:max-h-[60vh] object-contain block select-none"
+                  className="max-w-full max-h-[40vh] object-contain block select-none"
                 />
               </ReactCrop>
             </div>
 
             {/* Actions */}
-            <div className="p-6 border-t border-border bg-card">
+            <div className="p-6 border-t border-border bg-card shrink-0">
               <p className="text-xs text-muted-foreground mb-4">
                 Drag the crop circle's corners to resize, or drag from the center to reposition the crop area.
               </p>
