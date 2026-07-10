@@ -84,7 +84,7 @@ export interface CertificationData {
   skillsLearned?: string[];
   verifyUrl?: string;
   downloadUrl?: string;
-  category?: "Cloud" | "Programming" | "Database" | "Testing" | "General";
+  category?: string;
 }
 
 export interface ExperienceData {
