@@ -43,30 +43,41 @@ const getCroppedImg = async (
     throw new Error("No 2d context");
   }
 
-  // Calculate downscaled dimensions keeping aspect ratio (max size 300px)
-  const maxDimension = 300;
-  let targetWidth = crop.width;
-  let targetHeight = crop.height;
+  // Calculate natural scaling factors (since crop coordinate points are layout-based, not natural pixel dimensions)
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
 
-  if (crop.width > maxDimension || crop.height > maxDimension) {
-    if (crop.width > crop.height) {
+  // Scale coordinates to the natural image dimensions
+  const sourceX = crop.x * scaleX;
+  const sourceY = crop.y * scaleY;
+  const sourceWidth = crop.width * scaleX;
+  const sourceHeight = crop.height * scaleY;
+
+  // Calculate target downscaled dimensions keeping aspect ratio (max size 300px)
+  const maxDimension = 300;
+  let targetWidth = sourceWidth;
+  let targetHeight = sourceHeight;
+
+  if (sourceWidth > maxDimension || sourceHeight > maxDimension) {
+    if (sourceWidth > sourceHeight) {
       targetWidth = maxDimension;
-      targetHeight = Math.round((crop.height / crop.width) * maxDimension);
+      targetHeight = Math.round((sourceHeight / sourceWidth) * maxDimension);
     } else {
       targetHeight = maxDimension;
-      targetWidth = Math.round((crop.width / crop.height) * maxDimension);
+      targetWidth = Math.round((sourceWidth / sourceHeight) * maxDimension);
     }
   }
 
   canvas.width = targetWidth;
   canvas.height = targetHeight;
 
+  // Draw natural dimensions onto canvas downscaled to target size
   ctx.drawImage(
     image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
     0,
     0,
     targetWidth,
