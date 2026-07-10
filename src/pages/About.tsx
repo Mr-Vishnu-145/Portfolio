@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getPortfolioData, AboutData, HeroData } from "@/lib/portfolioData";
+import { getPortfolioData, AboutData, HeroData, EducationData } from "@/lib/portfolioData";
 import { 
   GraduationCap, Briefcase, Calendar, Award, 
   Github, Linkedin, Mail, Phone, Download, Compass, Target, ArrowRight 
@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 const About = () => {
   const [data, setData] = useState<AboutData>(() => getPortfolioData().about);
   const [hero, setHero] = useState<HeroData>(() => getPortfolioData().hero);
+  const [education, setEducation] = useState<EducationData[]>(() => getPortfolioData().education || []);
   const [projectCount, setProjectCount] = useState(0);
   const [skillsCount, setSkillsCount] = useState(0);
 
@@ -17,6 +18,7 @@ const About = () => {
     const portfolio = getPortfolioData();
     setData(portfolio.about);
     setHero(portfolio.hero);
+    setEducation(portfolio.education || []);
     setProjectCount(portfolio.projects.length);
     
     // Count unique skills
@@ -28,6 +30,7 @@ const About = () => {
       const p = getPortfolioData();
       setData(p.about);
       setHero(p.hero);
+      setEducation(p.education || []);
       setProjectCount(p.projects.length);
       const u = new Set<string>();
       p.skills.forEach(c => c.skills.forEach(s => u.add(s)));
@@ -268,12 +271,25 @@ const About = () => {
           </h2>
           <div className="bg-card border border-border p-6 rounded-2xl shadow-sm space-y-4">
             <GraduationCap className="text-primary" size={32} />
-            <div>
-              <h4 className="font-bold text-foreground">Karpagam Institute of Technology</h4>
-              <p className="text-xs text-muted-foreground mt-1">B.Tech – Information Technology</p>
-              <p className="text-xs font-mono text-primary font-bold mt-1">CGPA: 8.2 / 10.0</p>
-              <p className="text-xs text-muted-foreground mt-2">Expected Graduation: 2027</p>
-            </div>
+            {education.length > 0 ? (
+              <div>
+                <h4 className="font-bold text-foreground">{education[0].college}</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {education[0].degree}{education[0].department ? ` – ${education[0].department}` : ""}
+                </p>
+                {education[0].cgpa && (
+                  <p className="text-xs font-mono text-primary font-bold mt-1">CGPA: {education[0].cgpa}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">Duration: {education[0].duration}</p>
+              </div>
+            ) : (
+              <div>
+                <h4 className="font-bold text-foreground">Karpagam Institute of Technology</h4>
+                <p className="text-xs text-muted-foreground mt-1">B.Tech – Information Technology</p>
+                <p className="text-xs font-mono text-primary font-bold mt-1">CGPA: 8.2 / 10.0</p>
+                <p className="text-xs text-muted-foreground mt-2">Expected Graduation: 2027</p>
+              </div>
+            )}
             
             <div className="pt-4 border-t border-border">
               <Link 
