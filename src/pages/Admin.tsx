@@ -1006,7 +1006,7 @@ const Admin = () => {
       projectsWorkedOn: [],
       skillsGained: expSkillsText.split(",").map(s => s.trim()).filter(Boolean),
     };
-    setPortfolioData({
+    saveToDbAndState({
       ...portfolioData,
       experience: [...(portfolioData.experience || []), expToAdd]
     });
@@ -1019,9 +1019,10 @@ const Admin = () => {
   };
 
   const handleRemoveExperience = (index: number) => {
+    if (!window.confirm("Are you sure you want to delete this experience record?")) return;
     const updated = [...(portfolioData.experience || [])];
     updated.splice(index, 1);
-    setPortfolioData({ ...portfolioData, experience: updated });
+    saveToDbAndState({ ...portfolioData, experience: updated });
   };
 
   // Education Handler
@@ -1063,7 +1064,7 @@ const Admin = () => {
         activities: eduActivitiesList,
         certificates: eduCertificatesList,
       };
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         education: targetEduList
       });
@@ -1084,7 +1085,7 @@ const Admin = () => {
         activities: eduActivitiesList,
         certificates: eduCertificatesList,
       };
-      setPortfolioData({
+      saveToDbAndState({
         ...portfolioData,
         education: [...targetEduList, eduToAdd]
       });
@@ -1132,9 +1133,10 @@ const Admin = () => {
   };
 
   const handleRemoveEducation = (index: number) => {
+    if (!window.confirm("Are you sure you want to delete this education record?")) return;
     const updated = [...(portfolioData.education || [])];
     updated.splice(index, 1);
-    setPortfolioData({ ...portfolioData, education: updated });
+    saveToDbAndState({ ...portfolioData, education: updated });
     if (editingEduIndex === index) {
       setEditingEduIndex(null);
       setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
@@ -1169,7 +1171,7 @@ const Admin = () => {
       description: newAch.description || "",
       link: newAch.link || ""
     };
-    setPortfolioData({
+    saveToDbAndState({
       ...portfolioData,
       achievements: [...(portfolioData.achievements || []), achToAdd]
     });
@@ -1178,9 +1180,10 @@ const Admin = () => {
   };
 
   const handleRemoveAchievement = (index: number) => {
+    if (!window.confirm("Are you sure you want to delete this achievement?")) return;
     const updated = [...(portfolioData.achievements || [])];
     updated.splice(index, 1);
-    setPortfolioData({ ...portfolioData, achievements: updated });
+    saveToDbAndState({ ...portfolioData, achievements: updated });
   };
 
   // Resume & Contact Extra Updaters
