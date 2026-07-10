@@ -2823,8 +2823,9 @@ const Admin = () => {
                             credentialId: "",
                             issueDate: "",
                             category: "General",
+                            skillsLearned: [],
                           });
-                          setCertSkillsText("");
+                          setCertSkillInput("");
                           toast.info("Editing cancelled.");
                         }}
                         className="px-4 py-2.5 border border-border text-muted-foreground hover:bg-accent rounded-lg font-semibold text-sm transition-colors"
