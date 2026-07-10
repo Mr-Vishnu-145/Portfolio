@@ -5,7 +5,8 @@ import { fetchPortfolioFromDb, savePortfolioToDb } from "@/lib/turso";
 interface PortfolioState {
   data: PortfolioData;
   dbError: string | null;
-  isWriting: boolean; // write-lock: blocks polls during active DB writes
+  isWriting: boolean;   // write-lock: blocks polls during active DB writes
+  isDbLoaded: boolean;  // true once the first DB fetch has resolved
   load: () => void;
   loadFromDb: () => Promise<void>;
   updateData: (newData: PortfolioData) => Promise<boolean>;
@@ -15,6 +16,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
   data: getPortfolioData(),
   dbError: null,
   isWriting: false,
+  isDbLoaded: false,
 
   load: () => set({ data: getPortfolioData() }),
 
@@ -25,9 +27,9 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     try {
       const dbData = await fetchPortfolioFromDb();
       if (dbData) {
-        set({ dbError: null });
-        // After the fetch completes, check again — a write may have started
+        // After fetch completes, check again — a write may have started while fetching
         if (get().isWriting) return;
+        set({ dbError: null });
         const currentData = get().data;
         if (JSON.stringify(currentData) !== JSON.stringify(dbData)) {
           savePortfolioData(dbData);
@@ -42,6 +44,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     } catch (error) {
       console.error("Zustand db loading error:", error);
       set({ dbError: (error as Error).message || "Database load error." });
+    } finally {
+      // Mark DB as loaded after the first fetch attempt (success or failure)
+      if (!get().isDbLoaded) {
+        set({ isDbLoaded: true });
+      }
     }
   },
 

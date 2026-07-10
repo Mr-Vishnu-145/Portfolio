@@ -804,42 +804,7 @@ const STORAGE_KEY = "portfolio_data";
 const dbToken = import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
 const isTursoActive = !!dbToken;
 
-// Max size for a single base64 field kept in localStorage (100KB)
-const MAX_LOCAL_B64 = 100 * 1024;
-
-// Strip oversized base64 strings from data so localStorage quota is not exceeded.
-// Large images / PDFs are still stored in Turso DB and restored from there on load.
-const stripLargeBase64 = (data: PortfolioData): PortfolioData => {
-  const isLargeB64 = (v: unknown) =>
-    typeof v === "string" && v.startsWith("data:") && v.length > MAX_LOCAL_B64;
-
-  return {
-    ...data,
-    hero: {
-      ...data.hero,
-      avatarUrl: isLargeB64(data.hero?.avatarUrl) ? "" : (data.hero?.avatarUrl ?? ""),
-    },
-    certifications: (data.certifications || []).map((c) => ({
-      ...c,
-      verifyUrl: isLargeB64(c.verifyUrl) ? "" : (c.verifyUrl ?? ""),
-    })),
-  };
-};
-
-// Load from localStorage first (instant, survives refresh), then DB overrides it
-const loadFromLocalStorage = (): PortfolioData => {
-  try {
-    if (typeof window !== "undefined") {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as PortfolioData;
-    }
-  } catch {
-    // ignore corrupt data
-  }
-  return defaultPortfolioData;
-};
-
-let memoryPortfolioData: PortfolioData = loadFromLocalStorage();
+let memoryPortfolioData: PortfolioData = defaultPortfolioData;
 
 export const getPortfolioData = (): PortfolioData => {
   return memoryPortfolioData;
@@ -867,15 +832,6 @@ export const savePortfolioData = (data: PortfolioData): void => {
     contactExtra: data.contactExtra || defaultPortfolioData.contactExtra,
     sectionVisibility: data.sectionVisibility || defaultPortfolioData.sectionVisibility,
   };
-
-  // Persist to localStorage (with large base64 stripped to avoid quota errors)
-  try {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stripLargeBase64(memoryPortfolioData)));
-    }
-  } catch (e) {
-    console.warn("localStorage quota exceeded, skipping local backup:", e);
-  }
 
   // Trigger custom event to notify listeners of changes
   if (typeof window !== "undefined") {

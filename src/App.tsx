@@ -25,32 +25,59 @@ import { isTursoActive } from "@/lib/turso";
 
 const queryClient = new QueryClient();
 
+// Full-screen loading spinner shown while waiting for the first DB fetch
+const DbLoader = () => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "hsl(222 47% 7%)",
+      zIndex: 9999,
+      gap: "1.25rem",
+    }}
+  >
+    <div
+      style={{
+        width: 52,
+        height: 52,
+        borderRadius: "50%",
+        border: "4px solid rgba(139,92,246,0.2)",
+        borderTopColor: "#8b5cf6",
+        animation: "spin 0.75s linear infinite",
+      }}
+    />
+    <p style={{ color: "#a78bfa", fontFamily: "Inter, sans-serif", fontSize: "0.95rem", margin: 0 }}>
+      Loading portfolio…
+    </p>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
 const App = () => {
+  const isDbLoaded = usePortfolioStore((state) => state.isDbLoaded);
+
   useEffect(() => {
-    // Sync with Turso Cloud DB on mount
+    // Fetch from Turso DB immediately on mount — this sets isDbLoaded once resolved
     usePortfolioStore.getState().loadFromDb();
 
-    // Poll the database for changes every 5 seconds for real-time updates (only if active)
+    // Poll every 5 seconds so edits in Admin appear live everywhere (only when Turso is active)
     const interval = isTursoActive
       ? setInterval(() => {
           usePortfolioStore.getState().loadFromDb();
         }, 5000)
       : undefined;
 
-    // Fallback storage listener for offline/local development when Turso is disabled
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "portfolio_data" && !isTursoActive) {
-        usePortfolioStore.getState().load();
-        window.dispatchEvent(new Event("portfolioDataUpdate"));
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-
     return () => {
       if (interval) clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
+
+  // Block rendering until the DB has responded at least once
+  if (!isDbLoaded) return <DbLoader />;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -61,24 +88,24 @@ const App = () => {
           <Routes>
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/edit-project/:id" element={<EditProject />} />
-          
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<Layout><About /></Layout>} />
-          <Route path="/skills" element={<Layout><Skills /></Layout>} />
-          <Route path="/projects" element={<Layout><Projects /></Layout>} />
-          <Route path="/projects/:id" element={<Layout><ProjectDetails /></Layout>} />
-          <Route path="/certifications" element={<Layout><Certifications /></Layout>} />
-          <Route path="/experience" element={<Layout><Experience /></Layout>} />
-          <Route path="/education" element={<Layout><Education /></Layout>} />
-          <Route path="/achievements" element={<Layout><Achievements /></Layout>} />
-          <Route path="/resume" element={<Layout><Resume /></Layout>} />
-          <Route path="/contact" element={<Layout><Contact /></Layout>} />
-          
-          <Route path="*" element={<Layout><NotFound /></Layout>} />
-        </Routes>
-      </HashRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<Layout><About /></Layout>} />
+            <Route path="/skills" element={<Layout><Skills /></Layout>} />
+            <Route path="/projects" element={<Layout><Projects /></Layout>} />
+            <Route path="/projects/:id" element={<Layout><ProjectDetails /></Layout>} />
+            <Route path="/certifications" element={<Layout><Certifications /></Layout>} />
+            <Route path="/experience" element={<Layout><Experience /></Layout>} />
+            <Route path="/education" element={<Layout><Education /></Layout>} />
+            <Route path="/achievements" element={<Layout><Achievements /></Layout>} />
+            <Route path="/resume" element={<Layout><Resume /></Layout>} />
+            <Route path="/contact" element={<Layout><Contact /></Layout>} />
+
+            <Route path="*" element={<Layout><NotFound /></Layout>} />
+          </Routes>
+        </HashRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
 
