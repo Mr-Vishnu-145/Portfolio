@@ -316,11 +316,10 @@ const Admin = () => {
       ...currentVis,
       [section]: !currentVis[section]
     };
-    setPortfolioData({
+    saveToDbAndState({
       ...portfolioData,
       sectionVisibility: updatedVis
     });
-    toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} section visibility updated!`);
   };
 
   const saveToDbAndState = async (newData: PortfolioData) => {
