@@ -809,25 +809,31 @@ const Admin = () => {
   };
 
   const handleRemoveProject = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) return;
     const deletedProj = portfolioData.projects[index];
     if (!deletedProj) return;
 
-    const updatedProjects = [...portfolioData.projects];
-    updatedProjects.splice(index, 1);
-    saveToDbAndState({ ...portfolioData, projects: updatedProjects });
+    setDeleteConfirm({
+      isOpen: true,
+      title: "Delete Project",
+      message: `Are you sure you want to delete the project "${deletedProj.title}"? This action can be undone.`,
+      onConfirm: () => {
+        const updatedProjects = [...portfolioData.projects];
+        updatedProjects.splice(index, 1);
+        saveToDbAndState({ ...portfolioData, projects: updatedProjects });
 
-    toast.success(`Deleted project "${deletedProj.title}"`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const restoredProjects = [...portfolioData.projects];
-          restoredProjects.splice(index, 0, deletedProj);
-          saveToDbAndState({ ...portfolioData, projects: restoredProjects });
-          toast.success(`Restored project "${deletedProj.title}"`);
-        }
-      },
-      duration: 5000,
+        toast.success(`Deleted project "${deletedProj.title}"`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              const restoredProjects = [...portfolioData.projects];
+              restoredProjects.splice(index, 0, deletedProj);
+              saveToDbAndState({ ...portfolioData, projects: restoredProjects });
+              toast.success(`Restored project "${deletedProj.title}"`);
+            }
+          },
+          duration: 5000,
+        });
+      }
     });
   };
 
@@ -890,6 +896,18 @@ const Admin = () => {
     "Testing",
     ...portfolioData.certifications.map(c => c.category).filter(Boolean)
   ]));
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const handleAddCert = (e: React.FormEvent) => {
     e.preventDefault();
@@ -974,40 +992,46 @@ const Admin = () => {
   };
 
   const handleRemoveCert = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this certification?")) return;
     const deletedCert = portfolioData.certifications[index];
     if (!deletedCert) return;
 
-    const updatedCerts = [...portfolioData.certifications];
-    updatedCerts.splice(index, 1);
-    saveToDbAndState({ ...portfolioData, certifications: updatedCerts });
-    if (editingCertIndex === index) {
-      setEditingCertIndex(null);
-      setNewCert({
-        name: "",
-        org: "",
-        verifyUrl: "",
-        credentialId: "",
-        issueDate: "",
-        category: "General",
-        skillsLearned: [],
-      });
-      setCertSkillInput("");
-    } else if (editingCertIndex !== null && editingCertIndex > index) {
-      setEditingCertIndex(editingCertIndex - 1);
-    }
-
-    toast.success(`Deleted certification "${deletedCert.name}"`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const restoredCerts = [...portfolioData.certifications];
-          restoredCerts.splice(index, 0, deletedCert);
-          saveToDbAndState({ ...portfolioData, certifications: restoredCerts });
-          toast.success(`Restored certification "${deletedCert.name}"`);
+    setDeleteConfirm({
+      isOpen: true,
+      title: "Delete Certification",
+      message: `Are you sure you want to delete "${deletedCert.name}"? This action can be undone.`,
+      onConfirm: () => {
+        const updatedCerts = [...portfolioData.certifications];
+        updatedCerts.splice(index, 1);
+        saveToDbAndState({ ...portfolioData, certifications: updatedCerts });
+        if (editingCertIndex === index) {
+          setEditingCertIndex(null);
+          setNewCert({
+            name: "",
+            org: "",
+            verifyUrl: "",
+            credentialId: "",
+            issueDate: "",
+            category: "General",
+            skillsLearned: [],
+          });
+          setCertSkillInput("");
+        } else if (editingCertIndex !== null && editingCertIndex > index) {
+          setEditingCertIndex(editingCertIndex - 1);
         }
-      },
-      duration: 5000,
+
+        toast.success(`Deleted certification "${deletedCert.name}"`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              const restoredCerts = [...portfolioData.certifications];
+              restoredCerts.splice(index, 0, deletedCert);
+              saveToDbAndState({ ...portfolioData, certifications: restoredCerts });
+              toast.success(`Restored certification "${deletedCert.name}"`);
+            }
+          },
+          duration: 5000,
+        });
+      }
     });
   };
 
@@ -1053,25 +1077,31 @@ const Admin = () => {
   };
 
   const handleRemoveExperience = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this experience record?")) return;
     const deletedExp = (portfolioData.experience || [])[index];
     if (!deletedExp) return;
 
-    const updated = [...(portfolioData.experience || [])];
-    updated.splice(index, 1);
-    saveToDbAndState({ ...portfolioData, experience: updated });
+    setDeleteConfirm({
+      isOpen: true,
+      title: "Delete Experience",
+      message: `Are you sure you want to delete your experience record at "${deletedExp.companyName}"? This action can be undone.`,
+      onConfirm: () => {
+        const updated = [...(portfolioData.experience || [])];
+        updated.splice(index, 1);
+        saveToDbAndState({ ...portfolioData, experience: updated });
 
-    toast.success(`Deleted experience at "${deletedExp.companyName}"`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const restored = [...(portfolioData.experience || [])];
-          restored.splice(index, 0, deletedExp);
-          saveToDbAndState({ ...portfolioData, experience: restored });
-          toast.success(`Restored experience at "${deletedExp.companyName}"`);
-        }
-      },
-      duration: 5000,
+        toast.success(`Deleted experience at "${deletedExp.companyName}"`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              const restored = [...(portfolioData.experience || [])];
+              restored.splice(index, 0, deletedExp);
+              saveToDbAndState({ ...portfolioData, experience: restored });
+              toast.success(`Restored experience at "${deletedExp.companyName}"`);
+            }
+          },
+          duration: 5000,
+        });
+      }
     });
   };
 
@@ -1183,37 +1213,43 @@ const Admin = () => {
   };
 
   const handleRemoveEducation = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this education record?")) return;
     const deletedEdu = (portfolioData.education || [])[index];
     if (!deletedEdu) return;
 
-    const updated = [...(portfolioData.education || [])];
-    updated.splice(index, 1);
-    saveToDbAndState({ ...portfolioData, education: updated });
-    if (editingEduIndex === index) {
-      setEditingEduIndex(null);
-      setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
-      setEduCoursesText("");
-      setEduProjectsList([]);
-      setEduProjectInput("");
-      setEduAchText("");
-      setEduActivitiesList([]);
-      setEduActivityInput("");
-      setEduCertificatesList([]);
-      setEduCertificateInput("");
-    }
-
-    toast.success(`Deleted education at "${deletedEdu.college}"`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const restored = [...(portfolioData.education || [])];
-          restored.splice(index, 0, deletedEdu);
-          saveToDbAndState({ ...portfolioData, education: restored });
-          toast.success(`Restored education at "${deletedEdu.college}"`);
+    setDeleteConfirm({
+      isOpen: true,
+      title: "Delete Education Record",
+      message: `Are you sure you want to delete your education record at "${deletedEdu.college}"? This action can be undone.`,
+      onConfirm: () => {
+        const updated = [...(portfolioData.education || [])];
+        updated.splice(index, 1);
+        saveToDbAndState({ ...portfolioData, education: updated });
+        if (editingEduIndex === index) {
+          setEditingEduIndex(null);
+          setNewEdu({ college: "", degree: "", department: "", duration: "", cgpa: "" });
+          setEduCoursesText("");
+          setEduProjectsList([]);
+          setEduProjectInput("");
+          setEduAchText("");
+          setEduActivitiesList([]);
+          setEduActivityInput("");
+          setEduCertificatesList([]);
+          setEduCertificateInput("");
         }
-      },
-      duration: 5000,
+
+        toast.success(`Deleted education at "${deletedEdu.college}"`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              const restored = [...(portfolioData.education || [])];
+              restored.splice(index, 0, deletedEdu);
+              saveToDbAndState({ ...portfolioData, education: restored });
+              toast.success(`Restored education at "${deletedEdu.college}"`);
+            }
+          },
+          duration: 5000,
+        });
+      }
     });
   };
 
@@ -1246,25 +1282,31 @@ const Admin = () => {
   };
 
   const handleRemoveAchievement = (index: number) => {
-    if (!window.confirm("Are you sure you want to delete this achievement?")) return;
     const deletedAch = (portfolioData.achievements || [])[index];
     if (!deletedAch) return;
 
-    const updated = [...(portfolioData.achievements || [])];
-    updated.splice(index, 1);
-    saveToDbAndState({ ...portfolioData, achievements: updated });
+    setDeleteConfirm({
+      isOpen: true,
+      title: "Delete Achievement",
+      message: `Are you sure you want to delete the achievement "${deletedAch.title}"? This action can be undone.`,
+      onConfirm: () => {
+        const updated = [...(portfolioData.achievements || [])];
+        updated.splice(index, 1);
+        saveToDbAndState({ ...portfolioData, achievements: updated });
 
-    toast.success(`Deleted achievement "${deletedAch.title}"`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          const restored = [...(portfolioData.achievements || [])];
-          restored.splice(index, 0, deletedAch);
-          saveToDbAndState({ ...portfolioData, achievements: restored });
-          toast.success(`Restored achievement "${deletedAch.title}"`);
-        }
-      },
-      duration: 5000,
+        toast.success(`Deleted achievement "${deletedAch.title}"`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              const restored = [...(portfolioData.achievements || [])];
+              restored.splice(index, 0, deletedAch);
+              saveToDbAndState({ ...portfolioData, achievements: restored });
+              toast.success(`Restored achievement "${deletedAch.title}"`);
+            }
+          },
+          duration: 5000,
+        });
+      }
     });
   };
 
@@ -3863,6 +3905,37 @@ const Admin = () => {
                   Apply Crop
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Center Deletion Confirmation Dialog */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-scale-in">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-destructive" />
+            <h3 className="text-lg font-bold text-foreground font-serif">{deleteConfirm.title}</h3>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">{deleteConfirm.message}</p>
+            
+            <div className="flex gap-3 mt-6 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteConfirm.onConfirm();
+                  setDeleteConfirm({ ...deleteConfirm, isOpen: false });
+                }}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 shadow-md shadow-destructive/10 transition-all"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
