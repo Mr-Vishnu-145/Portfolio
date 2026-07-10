@@ -840,7 +840,15 @@ const Admin = () => {
   };
 
   // Certifications Handlers
-  const [newCert, setNewCert] = useState<Partial<CertificationData>>({ name: "", org: "", verifyUrl: "" });
+  const [newCert, setNewCert] = useState<Partial<CertificationData>>({
+    name: "",
+    org: "",
+    verifyUrl: "",
+    credentialId: "",
+    issueDate: "",
+    category: "General",
+  });
+  const [certSkillsText, setCertSkillsText] = useState("");
   const [editingCertIndex, setEditingCertIndex] = useState<number | null>(null);
 
   const handleAddCert = (e: React.FormEvent) => {
@@ -850,6 +858,7 @@ const Admin = () => {
       return;
     }
     const targetCerts = [...portfolioData.certifications];
+    const skillsArray = certSkillsText.split(",").map(s => s.trim()).filter(Boolean);
 
     if (editingCertIndex !== null) {
       // Update mode
@@ -859,6 +868,10 @@ const Admin = () => {
         name: newCert.name,
         org: newCert.org,
         verifyUrl: newCert.verifyUrl || "",
+        credentialId: newCert.credentialId || "",
+        issueDate: newCert.issueDate || "",
+        category: newCert.category || "General",
+        skillsLearned: skillsArray,
       };
       setPortfolioData({
         ...portfolioData,
@@ -873,6 +886,10 @@ const Admin = () => {
         name: newCert.name,
         org: newCert.org,
         verifyUrl: newCert.verifyUrl || "",
+        credentialId: newCert.credentialId || "",
+        issueDate: newCert.issueDate || "",
+        category: newCert.category || "General",
+        skillsLearned: skillsArray,
       };
       setPortfolioData({
         ...portfolioData,
@@ -880,7 +897,15 @@ const Admin = () => {
       });
       toast.success("Certification added!");
     }
-    setNewCert({ name: "", org: "", verifyUrl: "" });
+    setNewCert({
+      name: "",
+      org: "",
+      verifyUrl: "",
+      credentialId: "",
+      issueDate: "",
+      category: "General",
+    });
+    setCertSkillsText("");
   };
 
   const handleSelectCertForEdit = (index: number) => {
@@ -891,7 +916,11 @@ const Admin = () => {
       name: cert.name,
       org: cert.org,
       verifyUrl: cert.verifyUrl || "",
+      credentialId: cert.credentialId || "",
+      issueDate: cert.issueDate || "",
+      category: cert.category || "General",
     });
+    setCertSkillsText((cert.skillsLearned || []).join(", "));
 
     const element = document.getElementById("admin-cert-form");
     if (element) {
@@ -908,7 +937,15 @@ const Admin = () => {
     setPortfolioData({ ...portfolioData, certifications: updatedCerts });
     if (editingCertIndex === index) {
       setEditingCertIndex(null);
-      setNewCert({ name: "", org: "", verifyUrl: "" });
+      setNewCert({
+        name: "",
+        org: "",
+        verifyUrl: "",
+        credentialId: "",
+        issueDate: "",
+        category: "General",
+      });
+      setCertSkillsText("");
     } else if (editingCertIndex !== null && editingCertIndex > index) {
       setEditingCertIndex(editingCertIndex - 1);
     }
@@ -2578,6 +2615,56 @@ const Admin = () => {
                       placeholder="e.g. AWS Academy / Udemy"
                       className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
                     />
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Credential ID (Optional)</label>
+                      <input
+                        type="text"
+                        value={newCert.credentialId || ""}
+                        onChange={(e) => setNewCert({ ...newCert, credentialId: e.target.value })}
+                        placeholder="e.g. AWS-SEC-12345"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Issue Date (Optional)</label>
+                      <input
+                        type="text"
+                        value={newCert.issueDate || ""}
+                        onChange={(e) => setNewCert({ ...newCert, issueDate: e.target.value })}
+                        placeholder="e.g. June 2024"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Category</label>
+                      <select
+                        value={newCert.category || "General"}
+                        onChange={(e) => setNewCert({ ...newCert, category: e.target.value as any })}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm bg-background"
+                      >
+                        <option value="General">General</option>
+                        <option value="Cloud">Cloud</option>
+                        <option value="Programming">Programming</option>
+                        <option value="Database">Database</option>
+                        <option value="Testing">Testing</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground font-semibold">Skills Learned (Comma-separated)</label>
+                      <input
+                        type="text"
+                        value={certSkillsText}
+                        onChange={(e) => setCertSkillsText(e.target.value)}
+                        placeholder="e.g. React, Tailwind CSS, Node.js"
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary text-sm"
+                      />
+                    </div>
                   </div>
 
                   <div className="grid gap-4 border-t border-border pt-4">

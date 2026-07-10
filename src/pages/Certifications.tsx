@@ -160,29 +160,38 @@ const Certifications = () => {
               </div>
 
               <div className="flex gap-2 mt-6 pt-4 border-t border-border/50">
-                <a
-                  href={cert.verifyUrl || "#"}
-                  target={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? "_self" : "_blank"}
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (cert.verifyUrl && cert.verifyUrl.startsWith("data:")) {
-                      e.preventDefault();
-                      setActivePreview({ name: cert.name, url: cert.verifyUrl });
-                    }
-                  }}
-                  className="flex-1 py-1.5 px-3 rounded-lg bg-accent text-accent-foreground text-center text-xs font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-1"
-                >
-                  <ExternalLink size={12} />
-                  Verify
-                </a>
-                <a
-                  href={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? cert.verifyUrl : (cert.downloadUrl || "#")}
-                  download={cert.verifyUrl && cert.verifyUrl.startsWith("data:") ? `${cert.name.replace(/\s+/g, "_")}_Certificate.${cert.verifyUrl.startsWith("data:application/pdf") ? "pdf" : "jpg"}` : undefined}
-                  className="py-1.5 px-2.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center"
-                  title="Download File"
-                >
-                  <Download size={12} />
-                </a>
+                {cert.verifyUrl ? (
+                  <a
+                    href={cert.verifyUrl}
+                    target={cert.verifyUrl.startsWith("data:") ? "_self" : "_blank"}
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (cert.verifyUrl && cert.verifyUrl.startsWith("data:")) {
+                        e.preventDefault();
+                        setActivePreview({ name: cert.name, url: cert.verifyUrl });
+                      }
+                    }}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-accent text-accent-foreground text-center text-xs font-semibold hover:opacity-90 transition-all flex items-center justify-center gap-1"
+                  >
+                    <ExternalLink size={12} />
+                    Verify
+                  </a>
+                ) : (
+                  <span className="flex-1 py-1.5 px-3 rounded-lg bg-background text-muted-foreground/30 text-center text-xs font-semibold border border-border/50 cursor-not-allowed flex items-center justify-center gap-1 select-none">
+                    No Verification URL
+                  </span>
+                )}
+                
+                {(cert.verifyUrl?.startsWith("data:") || cert.downloadUrl) && (
+                  <a
+                    href={cert.verifyUrl?.startsWith("data:") ? cert.verifyUrl : cert.downloadUrl}
+                    download={cert.verifyUrl?.startsWith("data:") ? `${cert.name.replace(/\s+/g, "_")}_Certificate.${cert.verifyUrl.startsWith("data:application/pdf") ? "pdf" : "jpg"}` : undefined}
+                    className="py-1.5 px-2.5 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-all flex items-center justify-center"
+                    title="Download File"
+                  >
+                    <Download size={12} />
+                  </a>
+                )}
               </div>
             </motion.div>
           ))}
