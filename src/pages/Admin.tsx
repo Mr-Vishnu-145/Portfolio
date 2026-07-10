@@ -2489,17 +2489,17 @@ const Admin = () => {
                     />
                   </div>
 
-                  <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="grid sm:grid-cols-3 gap-3">
                     {/* Academic Projects (add one by one) */}
-                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
-                      <label className="text-xs text-muted-foreground font-bold block mb-1">Academic Projects</label>
-                      <div className="flex gap-1.5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase text-muted-foreground font-semibold">Academic Projects</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
                           value={eduProjectInput}
                           onChange={(e) => setEduProjectInput(e.target.value)}
                           placeholder="e.g. ERP portal"
-                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
@@ -2518,40 +2518,40 @@ const Admin = () => {
                               setEduProjectInput("");
                             }
                           }}
-                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg font-sans"
                         >
                           Add
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1">
                         {eduProjectsList.map((proj, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                          <span key={i} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
                             {proj}
                             <button
                               type="button"
                               onClick={() => setEduProjectsList(eduProjectsList.filter((_, idx) => idx !== i))}
-                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                              className="font-bold text-xs"
                             >
                               &times;
                             </button>
                           </span>
                         ))}
                         {eduProjectsList.length === 0 && (
-                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                          <span className="text-[10px] text-muted-foreground italic pl-1">None added yet</span>
                         )}
                       </div>
                     </div>
 
                     {/* Activities (add one by one) */}
-                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
-                      <label className="text-xs text-muted-foreground font-bold block mb-1">Activities</label>
-                      <div className="flex gap-1.5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase text-muted-foreground font-semibold">Activities</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
                           value={eduActivityInput}
                           onChange={(e) => setEduActivityInput(e.target.value)}
                           placeholder="e.g. Coding Club"
-                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
@@ -2570,40 +2570,40 @@ const Admin = () => {
                               setEduActivityInput("");
                             }
                           }}
-                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg font-sans"
                         >
                           Add
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1">
                         {eduActivitiesList.map((act, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                          <span key={i} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
                             {act}
                             <button
                               type="button"
                               onClick={() => setEduActivitiesList(eduActivitiesList.filter((_, idx) => idx !== i))}
-                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                              className="font-bold text-xs"
                             >
                               &times;
                             </button>
                           </span>
                         ))}
                         {eduActivitiesList.length === 0 && (
-                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                          <span className="text-[10px] text-muted-foreground italic pl-1">None added yet</span>
                         )}
                       </div>
                     </div>
 
                     {/* Certificates (add one by one) */}
-                    <div className="space-y-1 bg-card border border-border p-3.5 rounded-xl">
-                      <label className="text-xs text-muted-foreground font-bold block mb-1">Certificates</label>
-                      <div className="flex gap-1.5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase text-muted-foreground font-semibold">Certificates</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
                           value={eduCertificateInput}
                           onChange={(e) => setEduCertificateInput(e.target.value)}
                           placeholder="e.g. AWS Academy"
-                          className="flex-1 min-w-0 px-2 py-1 text-xs rounded border border-border bg-background text-foreground focus:outline-none"
+                          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
@@ -2622,26 +2622,26 @@ const Admin = () => {
                               setEduCertificateInput("");
                             }
                           }}
-                          className="px-2.5 py-1 bg-primary text-primary-foreground rounded text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                          className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg font-sans"
                         >
                           Add
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap gap-1">
                         {eduCertificatesList.map((cert, i) => (
-                          <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-secondary text-secondary-foreground border border-border px-1.5 py-0.5 rounded">
+                          <span key={i} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
                             {cert}
                             <button
                               type="button"
                               onClick={() => setEduCertificatesList(eduCertificatesList.filter((_, idx) => idx !== i))}
-                              className="text-muted-foreground hover:text-destructive font-bold text-xs"
+                              className="font-bold text-xs"
                             >
                               &times;
                             </button>
                           </span>
                         ))}
                         {eduCertificatesList.length === 0 && (
-                          <span className="text-[10px] text-muted-foreground italic">None added yet</span>
+                          <span className="text-[10px] text-muted-foreground italic pl-1">None added yet</span>
                         )}
                       </div>
                     </div>
