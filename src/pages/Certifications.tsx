@@ -47,7 +47,7 @@ const Certifications = () => {
   const itemVariants = {
     hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } }
-  };
+  } as const;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
