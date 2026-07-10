@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
@@ -6,7 +6,8 @@ import {
   GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3
 } from "lucide-react";
 import { toast } from "sonner";
-import Cropper from "react-easy-crop";
+import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import {
   getPortfolioData, savePortfolioData, PortfolioData,
   ProjectData, CertificationData, SkillCategory, SkillItem, AboutHighlight,
@@ -31,20 +32,10 @@ interface GitHubRepo {
   html_url: string;
 }
 
-const createImage = (url: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
-    image.src = url;
-  });
-
 const getCroppedImg = async (
-  imageSrc: string,
-  pixelCrop: { x: number; y: number; width: number; height: number }
+  image: HTMLImageElement,
+  crop: PixelCrop
 ): Promise<string> => {
-  const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
@@ -52,19 +43,34 @@ const getCroppedImg = async (
     throw new Error("No 2d context");
   }
 
-  canvas.width = 300;
-  canvas.height = 300;
+  // Calculate downscaled dimensions keeping aspect ratio (max size 300px)
+  const maxDimension = 300;
+  let targetWidth = crop.width;
+  let targetHeight = crop.height;
+
+  if (crop.width > maxDimension || crop.height > maxDimension) {
+    if (crop.width > crop.height) {
+      targetWidth = maxDimension;
+      targetHeight = Math.round((crop.height / crop.width) * maxDimension);
+    } else {
+      targetHeight = maxDimension;
+      targetWidth = Math.round((crop.width / crop.height) * maxDimension);
+    }
+  }
+
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
 
   ctx.drawImage(
     image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
     0,
     0,
-    300,
-    300
+    targetWidth,
+    targetHeight
   );
 
   return canvas.toDataURL("image/jpeg", 0.8);
@@ -152,12 +158,18 @@ const Admin = () => {
     });
   };
 
-  // Profile Image crop states
+  // Profile Image crop states (react-image-crop)
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [crop, setCrop] = useState<Crop>({
+    unit: "%",
+    x: 10,
+    y: 10,
+    width: 80,
+    height: 80,
+  });
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [isCropping, setIsCropping] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Avatar upload and remove handlers
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,8 +178,14 @@ const Admin = () => {
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         setImageSrc(reader.result as string);
-        setZoom(1);
-        setCrop({ x: 0, y: 0 });
+        setCrop({
+          unit: "%",
+          x: 10,
+          y: 10,
+          width: 80,
+          height: 80,
+        });
+        setCompletedCrop(null);
         setIsCropping(true);
       });
       reader.readAsDataURL(file);
@@ -185,14 +203,13 @@ const Admin = () => {
     toast.info("Profile photo removed. Standard initials will be used.");
   };
 
-  const handleCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  };
-
   const handleSaveCrop = async () => {
-    if (!imageSrc || !croppedAreaPixels) return;
+    if (!imgRef.current || !completedCrop) {
+      toast.warning("Please select a crop area first.");
+      return;
+    }
     try {
-      const croppedBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
+      const croppedBase64 = await getCroppedImg(imgRef.current, completedCrop);
       setPortfolioData({
         ...portfolioData,
         hero: {
@@ -3346,40 +3363,29 @@ const Admin = () => {
             </div>
 
             {/* Cropper Container */}
-            <div className="relative w-full h-80 bg-background/50">
-              <Cropper
-                image={imageSrc}
+            <div className="relative w-full overflow-auto max-h-[60vh] p-4 bg-background/50 flex justify-center items-center">
+              <ReactCrop
                 crop={crop}
-                zoom={zoom}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
                 aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={handleCropComplete}
-              />
+                circularCrop
+              >
+                <img
+                  ref={imgRef}
+                  src={imageSrc}
+                  alt="Source"
+                  className="max-w-full max-h-80 object-contain"
+                />
+              </ReactCrop>
             </div>
 
-            {/* Controls */}
-            <div className="p-6 border-t border-border bg-card space-y-4">
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground font-semibold">
-                  <span>Zoom</span>
-                  <span>{Math.round(zoom * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  value={zoom}
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  aria-label="Zoom"
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
+            {/* Actions */}
+            <div className="p-6 border-t border-border bg-card">
+              <p className="text-xs text-muted-foreground mb-4">
+                Drag the crop circle's corners to resize, or drag from the center to reposition the crop area.
+              </p>
+              <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {
