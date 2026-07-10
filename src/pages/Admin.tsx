@@ -841,6 +841,7 @@ const Admin = () => {
 
   // Certifications Handlers
   const [newCert, setNewCert] = useState<Partial<CertificationData>>({ name: "", org: "", verifyUrl: "" });
+  const [editingCertIndex, setEditingCertIndex] = useState<number | null>(null);
 
   const handleAddCert = (e: React.FormEvent) => {
     e.preventDefault();
@@ -848,24 +849,69 @@ const Admin = () => {
       toast.error("Please fill in both certification name and issuing organization.");
       return;
     }
-    const certToAdd: CertificationData = {
-      id: `cert-${Date.now()}`,
-      name: newCert.name,
-      org: newCert.org,
-      verifyUrl: newCert.verifyUrl || "",
-    };
-    setPortfolioData({
-      ...portfolioData,
-      certifications: [...portfolioData.certifications, certToAdd]
-    });
+    const targetCerts = [...portfolioData.certifications];
+
+    if (editingCertIndex !== null) {
+      // Update mode
+      const targetId = targetCerts[editingCertIndex]?.id || `cert-${Date.now()}`;
+      targetCerts[editingCertIndex] = {
+        id: targetId,
+        name: newCert.name,
+        org: newCert.org,
+        verifyUrl: newCert.verifyUrl || "",
+      };
+      setPortfolioData({
+        ...portfolioData,
+        certifications: targetCerts
+      });
+      setEditingCertIndex(null);
+      toast.success("Certification updated successfully!");
+    } else {
+      // Add mode
+      const certToAdd: CertificationData = {
+        id: `cert-${Date.now()}`,
+        name: newCert.name,
+        org: newCert.org,
+        verifyUrl: newCert.verifyUrl || "",
+      };
+      setPortfolioData({
+        ...portfolioData,
+        certifications: [...portfolioData.certifications, certToAdd]
+      });
+      toast.success("Certification added!");
+    }
     setNewCert({ name: "", org: "", verifyUrl: "" });
-    toast.success("Certification added!");
+  };
+
+  const handleSelectCertForEdit = (index: number) => {
+    const cert = portfolioData.certifications[index];
+    if (!cert) return;
+    setEditingCertIndex(index);
+    setNewCert({
+      name: cert.name,
+      org: cert.org,
+      verifyUrl: cert.verifyUrl || "",
+    });
+
+    const element = document.getElementById("admin-cert-form");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    toast.info(`Editing certification "${cert.name}"`);
   };
 
   const handleRemoveCert = (index: number) => {
     const updatedCerts = [...portfolioData.certifications];
     updatedCerts.splice(index, 1);
     setPortfolioData({ ...portfolioData, certifications: updatedCerts });
+    if (editingCertIndex === index) {
+      setEditingCertIndex(null);
+      setNewCert({ name: "", org: "", verifyUrl: "" });
+    } else if (editingCertIndex !== null && editingCertIndex > index) {
+      setEditingCertIndex(editingCertIndex - 1);
+    }
   };
 
   // Experience Handler
@@ -2505,10 +2551,11 @@ const Admin = () => {
               <div className="space-y-6 animate-fade-in">
                 <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Manage Certifications</h2>
 
-                {/* Add Certificate Form */}
-                <form onSubmit={handleAddCert} className="bg-background border border-border p-5 rounded-xl space-y-4 shadow-sm">
+                {/* Add/Edit Certificate Form */}
+                <form id="admin-cert-form" onSubmit={handleAddCert} className="bg-background border border-border p-5 rounded-xl space-y-4 shadow-sm">
                   <h3 className="font-semibold text-foreground flex items-center gap-2">
-                    <Plus size={18} className="text-primary" /> Add Certification
+                    {editingCertIndex !== null ? <Edit3 size={18} className="text-primary" /> : <Plus size={18} className="text-primary" />}
+                    {editingCertIndex !== null ? "Edit Certification Details" : "Add Certification"}
                   </h3>
 
                   <div className="space-y-1">
@@ -2586,12 +2633,28 @@ const Admin = () => {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5 mt-2"
-                  >
-                    <Plus size={16} /> Add Certification
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 flex items-center justify-center gap-1.5"
+                    >
+                      {editingCertIndex !== null ? <Save size={16} /> : <Plus size={16} />}
+                      {editingCertIndex !== null ? "Save Changes" : "Add Certification"}
+                    </button>
+                    {editingCertIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCertIndex(null);
+                          setNewCert({ name: "", org: "", verifyUrl: "" });
+                          toast.info("Editing cancelled.");
+                        }}
+                        className="px-4 py-2.5 border border-border text-muted-foreground hover:bg-accent rounded-lg font-semibold text-sm transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 {/* Certificates List */}
@@ -2611,13 +2674,24 @@ const Admin = () => {
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleRemoveCert(idx)}
-                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-all shrink-0 border border-border/50 hover:border-destructive/20"
-                          title="Delete Certificate"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectCertForEdit(idx)}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors shrink-0"
+                            title="Edit Certificate"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCert(idx)}
+                            className="p-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                            title="Delete Certificate"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {portfolioData.certifications.length === 0 && (
