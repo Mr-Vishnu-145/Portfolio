@@ -100,9 +100,17 @@ const About = () => {
             
             {/* Visual Avatar */}
             <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/20 to-accent-foreground/20 border border-primary/20 flex items-center justify-center mx-auto mb-4 overflow-hidden relative group">
-              <span className="text-3xl font-bold font-serif text-primary group-hover:scale-110 transition-transform duration-300">
-                {hero.name.charAt(0)}{hero.lastName.charAt(0)}
-              </span>
+              {hero.avatarUrl ? (
+                <img 
+                  src={hero.avatarUrl} 
+                  alt={`${hero.name} ${hero.lastName}`} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                />
+              ) : (
+                <span className="text-3xl font-bold font-serif text-primary group-hover:scale-110 transition-transform duration-300">
+                  {hero.name.charAt(0)}{hero.lastName.charAt(0)}
+                </span>
+              )}
             </div>
 
             <h2 className="text-2xl font-bold font-serif text-foreground">{hero.name} {hero.lastName}</h2>

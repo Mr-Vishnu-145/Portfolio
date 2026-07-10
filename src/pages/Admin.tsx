@@ -6,6 +6,7 @@ import {
   GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3
 } from "lucide-react";
 import { toast } from "sonner";
+import Cropper from "react-easy-crop";
 import {
   getPortfolioData, savePortfolioData, PortfolioData,
   ProjectData, CertificationData, SkillCategory, SkillItem, AboutHighlight,
@@ -29,6 +30,45 @@ interface GitHubRepo {
   description: string | null;
   html_url: string;
 }
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener("load", () => resolve(image));
+    image.addEventListener("error", (error) => reject(error));
+    image.setAttribute("crossOrigin", "anonymous");
+    image.src = url;
+  });
+
+const getCroppedImg = async (
+  imageSrc: string,
+  pixelCrop: { x: number; y: number; width: number; height: number }
+): Promise<string> => {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("No 2d context");
+  }
+
+  canvas.width = 300;
+  canvas.height = 300;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    300,
+    300
+  );
+
+  return canvas.toDataURL("image/jpeg", 0.8);
+};
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -79,6 +119,95 @@ const Admin = () => {
       localStorage.setItem("theme", "light");
     }
   }, [dark]);
+
+  // Technical Interests input state
+  const [newInterestInput, setNewInterestInput] = useState("");
+
+  const handleAddInterest = () => {
+    if (!newInterestInput.trim()) return;
+    const currentInterests = portfolioData.about.interests || [];
+    if (currentInterests.includes(newInterestInput.trim())) {
+      toast.warning("Interest already exists!");
+      return;
+    }
+    setPortfolioData({
+      ...portfolioData,
+      about: {
+        ...portfolioData.about,
+        interests: [...currentInterests, newInterestInput.trim()]
+      }
+    });
+    setNewInterestInput("");
+  };
+
+  const handleRemoveInterest = (index: number) => {
+    const currentInterests = [...(portfolioData.about.interests || [])];
+    currentInterests.splice(index, 1);
+    setPortfolioData({
+      ...portfolioData,
+      about: {
+        ...portfolioData.about,
+        interests: currentInterests
+      }
+    });
+  };
+
+  // Profile Image crop states
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isCropping, setIsCropping] = useState(false);
+
+  // Avatar upload and remove handlers
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        setImageSrc(reader.result as string);
+        setZoom(1);
+        setCrop({ x: 0, y: 0 });
+        setIsCropping(true);
+      });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setPortfolioData({
+      ...portfolioData,
+      hero: {
+        ...portfolioData.hero,
+        avatarUrl: ""
+      }
+    });
+    toast.info("Profile photo removed. Standard initials will be used.");
+  };
+
+  const handleCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleSaveCrop = async () => {
+    if (!imageSrc || !croppedAreaPixels) return;
+    try {
+      const croppedBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
+      setPortfolioData({
+        ...portfolioData,
+        hero: {
+          ...portfolioData.hero,
+          avatarUrl: croppedBase64
+        }
+      });
+      setIsCropping(false);
+      setImageSrc(null);
+      toast.success("Profile photo cropped and loaded successfully!");
+    } catch (error) {
+      console.error("Failed to crop image:", error);
+      toast.error("Failed to crop image. Please try another file.");
+    }
+  };
 
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [isFetchingMessages, setIsFetchingMessages] = useState(false);
@@ -1082,7 +1211,7 @@ const Admin = () => {
                 }`}
             >
               <BookOpen size={18} />
-              About Bio
+              About Me
             </button>
             <button
               onClick={() => setActiveTab("skills")}
@@ -1285,21 +1414,150 @@ const Admin = () => {
 
             {/* ABOUT SECTION FORM */}
             {activeTab === "about" && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">About Biography</h2>
+              <div className="space-y-6 animate-fade-in">
+                <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">About Me Management</h2>
 
+                {/* Profile Image Upload & Crop */}
+                <div className="bg-card border border-border p-5 rounded-xl space-y-4">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    Profile Image
+                  </h3>
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Visual Avatar Preview */}
+                    <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary/20 to-accent-foreground/20 border border-primary/20 flex items-center justify-center overflow-hidden relative group shrink-0">
+                      {portfolioData.hero.avatarUrl ? (
+                        <img 
+                          src={portfolioData.hero.avatarUrl} 
+                          alt="Profile Preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl font-bold font-serif text-primary">
+                          {portfolioData.hero.name.charAt(0)}{portfolioData.hero.lastName.charAt(0)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 text-center sm:text-left">
+                      <p className="text-xs text-muted-foreground">
+                        Upload a photo. You can crop and zoom it in the editor. Optimized size (300x300 px) will be saved.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                        <label className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg cursor-pointer hover:opacity-90 transition-opacity">
+                          Upload Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {portfolioData.hero.avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveAvatar}
+                            className="px-4 py-2 bg-destructive/10 text-destructive border border-destructive/20 text-xs font-semibold rounded-lg hover:bg-destructive/20 transition-colors"
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Career Objective */}
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bio Paragraph</label>
+                  <label className="text-[10px] uppercase text-muted-foreground font-semibold">Career Objective</label>
                   <textarea
-                    value={portfolioData.about.bio}
-                    onChange={(e) => updateAboutBio(e.target.value)}
-                    rows={6}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                    value={portfolioData.about.objective || ""}
+                    onChange={(e) => setPortfolioData({
+                      ...portfolioData,
+                      about: { ...portfolioData.about, objective: e.target.value }
+                    })}
+                    rows={3}
+                    placeholder="Enter your career objective..."
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed text-sm"
                   />
                 </div>
 
+                {/* Biography */}
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-muted-foreground font-semibold">Who I Am (Bio Paragraph)</label>
+                  <textarea
+                    value={portfolioData.about.bio}
+                    onChange={(e) => setPortfolioData({
+                      ...portfolioData,
+                      about: { ...portfolioData.about, bio: e.target.value }
+                    })}
+                    rows={5}
+                    placeholder="Enter your bio..."
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed text-sm"
+                  />
+                </div>
+
+                {/* Journey */}
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-muted-foreground font-semibold">My Journey (Details)</label>
+                  <textarea
+                    value={portfolioData.about.journey || ""}
+                    onChange={(e) => setPortfolioData({
+                      ...portfolioData,
+                      about: { ...portfolioData.about, journey: e.target.value }
+                    })}
+                    rows={4}
+                    placeholder="Describe your roadmap and programming journey..."
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed text-sm"
+                  />
+                </div>
+
+                {/* Technical Interests (Tags Style) */}
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-muted-foreground font-semibold block">Technical Interests</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newInterestInput}
+                      onChange={(e) => setNewInterestInput(e.target.value)}
+                      placeholder="e.g. Distributed Systems"
+                      className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddInterest();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddInterest}
+                      className="px-3 bg-accent border border-border text-foreground hover:border-primary font-semibold text-xs rounded-lg font-sans shrink-0"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {(portfolioData.about.interests || []).map((interest, i) => (
+                      <span key={i} className="px-2 py-0.5 text-[10px] font-mono rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                        {interest}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveInterest(i)}
+                          className="font-bold text-xs"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                    {(portfolioData.about.interests || []).length === 0 && (
+                      <span className="text-[10px] text-muted-foreground italic pl-1">None added yet</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Highlights */}
                 <div className="space-y-4 pt-4 border-t border-border">
-                  <h3 className="font-semibold text-foreground">Bio Details & Highlights</h3>
+                  <h3 className="font-semibold text-foreground">Bio Highlights</h3>
                   <div className="grid gap-4">
                     {portfolioData.about.highlights.map((highlight, index) => (
                       <div key={highlight.title} className="p-4 rounded-xl bg-background border border-border space-y-3">
@@ -3067,6 +3325,83 @@ const Admin = () => {
           </main>
         </div>
       </div>
+
+      {/* Cropper Modal Overlay */}
+      {isCropping && imageSrc && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border w-full max-w-lg rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-scale-in">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-card">
+              <h3 className="font-bold text-foreground text-base">Crop Profile Picture</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCropping(false);
+                  setImageSrc(null);
+                }}
+                className="text-muted-foreground hover:text-foreground font-bold text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Cropper Container */}
+            <div className="relative w-full h-80 bg-background/50">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+              />
+            </div>
+
+            {/* Controls */}
+            <div className="p-6 border-t border-border bg-card space-y-4">
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground font-semibold">
+                  <span>Zoom</span>
+                  <span>{Math.round(zoom * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  aria-label="Zoom"
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCropping(false);
+                    setImageSrc(null);
+                  }}
+                  className="px-4 py-2 border border-border text-muted-foreground hover:bg-accent rounded-xl text-sm font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCrop}
+                  className="px-5 py-2 bg-primary text-primary-foreground hover:opacity-90 rounded-xl text-sm font-semibold transition-opacity"
+                >
+                  Apply Crop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

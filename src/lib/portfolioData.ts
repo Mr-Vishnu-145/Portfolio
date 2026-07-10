@@ -6,6 +6,7 @@ export interface HeroData {
   linkedin: string;
   email: string;
   phone: string;
+  avatarUrl?: string;
 }
 
 export interface AboutHighlight {
@@ -196,6 +197,7 @@ export const defaultPortfolioData: PortfolioData = {
     linkedin: "https://www.linkedin.com/in/vishnu145/",
     email: "Vishnuvenkat014@gmail.com",
     phone: "+91-9500861022",
+    avatarUrl: "",
   },
   about: {
     bio: "Motivated and enthusiastic engineering student seeking to build a stellar career as a Java / Full-Stack Developer. I possess a strong foundation in Java, Spring Boot, React.js, and SQL, developed through rigorous academic studies and hands-on projects. Passionate about writing clean, modular, and maintainable code.",
