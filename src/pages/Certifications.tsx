@@ -1,25 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { getPortfolioData, CertificationData } from "@/lib/portfolioData";
+import React, { useState } from "react";
+import { CertificationData } from "@/lib/portfolioData";
 import { Search, ExternalLink, Calendar, Award, Grid, List, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import { usePortfolioStore } from "@/store/usePortfolioStore";
 
 const Certifications = () => {
-  const [certs, setCerts] = useState<CertificationData[]>(() => getPortfolioData().certifications);
+  const certs = usePortfolioStore((state) => state.data.certifications);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid");
   const [activePreview, setActivePreview] = useState<{ name: string; url: string } | null>(null);
 
-  useEffect(() => {
-    setCerts(getPortfolioData().certifications);
-    const handleUpdate = () => {
-      setCerts(getPortfolioData().certifications);
-    };
-    window.addEventListener("portfolioDataUpdate", handleUpdate);
-    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
-  }, []);
-
-  const allCategories = ["All", "Cloud", "Programming", "Database", "Testing", "General"];
+  const allCategories = Array.from(new Set(["All", ...certs.map(c => c.category).filter(Boolean)]));
 
   const filteredCerts = certs.filter(cert => {
     const matchesSearch = 

@@ -327,6 +327,9 @@ const Admin = () => {
     setPortfolioData(newData);
     savePortfolioData(newData);
     usePortfolioStore.setState({ data: newData });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("portfolioDataUpdate"));
+    }
     try {
       const success = await usePortfolioStore.getState().updateData(newData);
       if (success) {

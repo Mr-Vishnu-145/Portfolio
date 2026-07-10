@@ -1,20 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Award, ExternalLink, Download } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
-import { getPortfolioData, CertificationData } from "@/lib/portfolioData";
+import { CertificationData } from "@/lib/portfolioData";
+import { usePortfolioStore } from "@/store/usePortfolioStore";
 
 const CertificationsSection = () => {
   const { ref, isVisible } = useScrollAnimation();
-  const [certs, setCerts] = useState<CertificationData[]>(() => getPortfolioData().certifications);
+  const certs = usePortfolioStore((state) => state.data.certifications);
   const [activePreview, setActivePreview] = useState<{ name: string; url: string } | null>(null);
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      setCerts(getPortfolioData().certifications);
-    };
-    window.addEventListener("portfolioDataUpdate", handleUpdate);
-    return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
-  }, []);
 
   return (
     <section id="certifications" className="py-24">
