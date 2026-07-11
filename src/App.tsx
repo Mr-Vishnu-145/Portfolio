@@ -45,12 +45,12 @@ const DbLoader = () => (
         width: 52,
         height: 52,
         borderRadius: "50%",
-        border: "4px solid rgba(139,92,246,0.2)",
-        borderTopColor: "#8b5cf6",
+        border: "4px solid rgba(34,197,94,0.2)",
+        borderTopColor: "#22c55e",
         animation: "spin 0.75s linear infinite",
       }}
     />
-    <p style={{ color: "#a78bfa", fontFamily: "Inter, sans-serif", fontSize: "0.95rem", margin: 0 }}>
+    <p style={{ color: "#4ade80", fontFamily: "Inter, sans-serif", fontSize: "0.95rem", margin: 0 }}>
       Loading portfolio…
     </p>
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
