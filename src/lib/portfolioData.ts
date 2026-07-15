@@ -191,7 +191,7 @@ export const defaultPortfolioData: PortfolioData = {
   },
   hero: {
     name: "Vishnu",
-    lastName: "V",
+    lastName: " V",
     description: "Java / Full-Stack Developer — Specializing in building clean, scalable enterprise web applications with Spring Boot, React, and MySQL.",
     github: "https://github.com/Mr-Vishnu-145/",
     linkedin: "https://www.linkedin.com/in/vishnu145/",
