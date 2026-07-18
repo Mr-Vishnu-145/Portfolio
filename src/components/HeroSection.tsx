@@ -38,8 +38,8 @@ const HeroSection = () => {
     return () => window.removeEventListener("portfolioDataUpdate", handleUpdate);
   }, []);
 
-  const { displayed: name, done: nameDone } = useTypingEffect(data.name, 100, 800);
-  const { displayed: lastName, done: lastDone } = useTypingEffect(data.lastName, 100, 1500);
+  const { displayed: name, done: nameDone } = useTypingEffect(data.name.trim(), 100, 800);
+  const { displayed: lastName, done: lastDone } = useTypingEffect(data.lastName.trim(), 100, 1500);
 
   const handleDownloadResume = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -77,6 +77,7 @@ const HeroSection = () => {
         </p>
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold font-serif text-foreground mb-4 min-h-[1.2em]">
           {name}
+          {nameDone && "\u00A0"}
           <span className="text-primary">{lastName}</span>
           {!lastDone && (
             <span className="inline-block w-[3px] h-[0.8em] bg-primary ml-1 animate-pulse align-middle" />
