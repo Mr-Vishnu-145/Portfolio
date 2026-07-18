@@ -35,25 +35,89 @@ const DbLoader = () => (
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "hsl(222 47% 7%)",
+      background: "radial-gradient(circle at center, #0B1528 0%, #030712 100%)",
       zIndex: 9999,
-      gap: "1.25rem",
+      gap: "2.5rem",
     }}
   >
+    {/* Logo Container with glassmorphism, glow and pulse animation */}
     <div
       style={{
-        width: 52,
-        height: 52,
-        borderRadius: "50%",
-        border: "4px solid rgba(34,197,94,0.2)",
-        borderTopColor: "#22c55e",
-        animation: "spin 0.75s linear infinite",
+        position: "relative",
+        width: 84,
+        height: 84,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "20px",
+        background: "rgba(255, 255, 255, 0.02)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px rgba(34, 197, 94, 0.1)",
+        backdropFilter: "blur(8px)",
+        animation: "pulseGlow 2.5s ease-in-out infinite",
       }}
-    />
-    <p style={{ color: "#4ade80", fontFamily: "Inter, sans-serif", fontSize: "0.95rem", margin: 0 }}>
-      Loading portfolio…
-    </p>
-    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    >
+      <img
+        src={`${import.meta.env.BASE_URL}favicon.ico`}
+        alt="Logo"
+        style={{
+          width: 52,
+          height: 52,
+          objectFit: "contain",
+        }}
+      />
+    </div>
+
+    {/* Down Logo Loader */}
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+      {/* Sleek rotating loader */}
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          border: "2px solid rgba(34,197,94,0.1)",
+          borderTopColor: "#22c55e",
+          animation: "spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite",
+        }}
+      />
+      {/* Glowing modern text */}
+      <p
+        style={{
+          color: "#22c55e",
+          fontFamily: "Inter, sans-serif",
+          fontSize: "0.85rem",
+          fontWeight: 500,
+          letterSpacing: "0.15em",
+          textTransform: "uppercase",
+          margin: 0,
+          opacity: 0.8,
+          animation: "shimmer 1.5s ease-in-out infinite alternate",
+        }}
+      >
+        Loading
+      </p>
+    </div>
+
+    <style>{`
+      @keyframes spin { 
+        to { transform: rotate(360deg); } 
+      }
+      @keyframes pulseGlow {
+        0%, 100% {
+          transform: scale(1);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px rgba(34, 197, 94, 0.1);
+        }
+        50% {
+          transform: scale(1.05);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 30px rgba(34, 197, 94, 0.25);
+        }
+      }
+      @keyframes shimmer {
+        from { opacity: 0.5; }
+        to { opacity: 1; text-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+      }
+    `}</style>
   </div>
 );
 
