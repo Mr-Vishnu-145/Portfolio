@@ -79,21 +79,32 @@ export const initDatabase = async (): Promise<void> => {
   }
 };
 
-/**
- * Fetches the portfolio data from the Turso database
- */
 export const fetchPortfolioFromDb = async (): Promise<PortfolioData | null> => {
   if (!dbToken) return null;
 
   try {
-    await initDatabase();
     const result = await client.execute("SELECT data FROM portfolio_data WHERE id = 1 LIMIT 1");
     if (result.rows.length > 0) {
       const rawData = result.rows[0].data as string;
       return JSON.parse(rawData) as PortfolioData;
     }
-  } catch (error) {
-    console.error("Error fetching portfolio from Turso DB:", error);
+  } catch (error: any) {
+    const errMsg = error?.message || "";
+    if (errMsg.includes("no such table") || errMsg.includes("does not exist") || errMsg.includes("not found")) {
+      try {
+        console.log("Database table not found. Initializing schema...");
+        await initDatabase();
+        const result = await client.execute("SELECT data FROM portfolio_data WHERE id = 1 LIMIT 1");
+        if (result.rows.length > 0) {
+          const rawData = result.rows[0].data as string;
+          return JSON.parse(rawData) as PortfolioData;
+        }
+      } catch (initError) {
+        console.error("Error after database initialization:", initError);
+      }
+    } else {
+      console.error("Error fetching portfolio from Turso DB:", error);
+    }
   }
   return null;
 };
@@ -157,7 +168,6 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
   }
 
   try {
-    await initDatabase();
     const result = await client.execute("SELECT * FROM contact_messages ORDER BY created_at DESC");
     return result.rows.map((row) => ({
       id: Number(row.id),
@@ -167,8 +177,26 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
       message: row.message as string,
       created_at: row.created_at as string,
     })) as ContactMessage[];
-  } catch (error) {
-    console.error("Error fetching contact messages from Turso DB:", error);
+  } catch (error: any) {
+    const errMsg = error?.message || "";
+    if (errMsg.includes("no such table") || errMsg.includes("does not exist") || errMsg.includes("not found")) {
+      try {
+        await initDatabase();
+        const result = await client.execute("SELECT * FROM contact_messages ORDER BY created_at DESC");
+        return result.rows.map((row) => ({
+          id: Number(row.id),
+          name: row.name as string,
+          email: row.email as string,
+          subject: row.subject as string,
+          message: row.message as string,
+          created_at: row.created_at as string,
+        })) as ContactMessage[];
+      } catch (initError) {
+        console.error("Error after database initialization:", initError);
+      }
+    } else {
+      console.error("Error fetching contact messages from Turso DB:", error);
+    }
     return [];
   }
 };

@@ -25,7 +25,12 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     if (get().isWriting) return;
 
     try {
-      const dbData = await fetchPortfolioFromDb();
+      const dbPromise = fetchPortfolioFromDb();
+      const timeoutPromise = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error("Database connection timed out.")), 4000)
+      );
+
+      const dbData = await Promise.race([dbPromise, timeoutPromise]);
       if (dbData) {
         // After fetch completes, check again — a write may have started while fetching
         if (get().isWriting) return;

@@ -23,6 +23,17 @@ import React, { useEffect } from "react";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 import { isTursoActive } from "@/lib/turso";
 
+// Synchronously apply theme class on load to prevent white flash
+if (typeof window !== "undefined") {
+  const saved = localStorage.getItem("theme");
+  const isDark = saved ? saved === "dark" : true; // Default to dark mode
+  if (isDark) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}
+
 const queryClient = new QueryClient();
 
 // Full-screen loading spinner shown while waiting for the first DB fetch
@@ -35,38 +46,22 @@ const DbLoader = () => (
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      background: "radial-gradient(circle at center, #0B1528 0%, #030712 100%)",
+      background: "hsl(var(--background))",
       zIndex: 9999,
       gap: "2.5rem",
     }}
   >
-    {/* Logo Container with glassmorphism, glow and pulse animation */}
-    <div
+    {/* Logo with pulse glow animation */}
+    <img
+      src={`${import.meta.env.BASE_URL}favicon.ico`}
+      alt="Logo"
       style={{
-        position: "relative",
-        width: 84,
-        height: 84,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: "20px",
-        background: "rgba(255, 255, 255, 0.02)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px rgba(34, 197, 94, 0.1)",
-        backdropFilter: "blur(8px)",
+        width: 72,
+        height: 72,
+        objectFit: "contain",
         animation: "pulseGlow 2.5s ease-in-out infinite",
       }}
-    >
-      <img
-        src={`${import.meta.env.BASE_URL}favicon.ico`}
-        alt="Logo"
-        style={{
-          width: 52,
-          height: 52,
-          objectFit: "contain",
-        }}
-      />
-    </div>
+    />
 
     {/* Down Logo Loader */}
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
@@ -76,15 +71,15 @@ const DbLoader = () => (
           width: 32,
           height: 32,
           borderRadius: "50%",
-          border: "2px solid rgba(34,197,94,0.1)",
-          borderTopColor: "#22c55e",
+          border: "2px solid hsl(var(--primary) / 0.15)",
+          borderTopColor: "hsl(var(--primary))",
           animation: "spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite",
         }}
       />
       {/* Glowing modern text */}
       <p
         style={{
-          color: "#22c55e",
+          color: "hsl(var(--primary))",
           fontFamily: "Inter, sans-serif",
           fontSize: "0.85rem",
           fontWeight: 500,
@@ -106,16 +101,16 @@ const DbLoader = () => (
       @keyframes pulseGlow {
         0%, 100% {
           transform: scale(1);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 20px rgba(34, 197, 94, 0.1);
+          filter: drop-shadow(0 0 10px hsl(var(--primary) / 0.25));
         }
         50% {
-          transform: scale(1.05);
-          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 30px rgba(34, 197, 94, 0.25);
+          transform: scale(1.08);
+          filter: drop-shadow(0 0 25px hsl(var(--primary) / 0.65));
         }
       }
       @keyframes shimmer {
         from { opacity: 0.5; }
-        to { opacity: 1; text-shadow: 0 0 8px rgba(34, 197, 94, 0.5); }
+        to { opacity: 1; text-shadow: 0 0 8px hsl(var(--primary) / 0.4); }
       }
     `}</style>
   </div>
