@@ -25,8 +25,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
 
     try {
       const dbPromise = fetchPortfolioFromDb();
-      const timeoutPromise = new Promise<null>((_, reject) =>
-        setTimeout(() => reject(new Error("Database fetch timed out.")), 4000)
+      const timeoutPromise = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), 12000)
       );
 
       const dbData = await Promise.race([dbPromise, timeoutPromise]);
@@ -42,8 +42,8 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
           }
         }
       }
-    } catch (error) {
-      console.error("Zustand background db loading error:", error);
+    } catch {
+      // Silently ignore transient network or timeout issues during background polling
     }
   },
 

@@ -496,31 +496,36 @@ const Admin = () => {
     setIsSavingGit(true);
     await usePortfolioStore.getState().updateData(portfolioData);
 
+    let tursoSaved = false;
     // Save to Turso Cloud DB if connected
     if (getIsTursoActive()) {
-      savePortfolioToDb(portfolioData).catch(err => console.error("Turso DB save error:", err));
+      tursoSaved = await savePortfolioToDb(portfolioData).catch(() => false);
     }
 
-    const code = generatePortfolioCodeFile(portfolioData);
+    const isLocalDev = typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-    try {
-      const res = await fetch("/__git-save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
+    if (isLocalDev) {
+      const code = generatePortfolioCodeFile(portfolioData);
+      try {
+        const res = await fetch("/__git-save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
+        });
 
-      if (res.ok) {
-        const json = await res.json();
-        toast.success(json.message || "Saved, committed & pushed to GitHub!");
-        setIsSavingGit(false);
-        return;
+        if (res.ok) {
+          const json = await res.json();
+          toast.success(json.message || "Saved, committed & pushed to GitHub!");
+          setIsSavingGit(false);
+          return;
+        }
+      } catch (e) {
+        // Local dev endpoint fallback
       }
-    } catch (e) {
-      // Local dev endpoint not available
     }
 
-    const ghToken = localStorage.getItem("github_access_token") || import.meta.env.VITE_GITHUB_TOKEN;
+    const ghToken = typeof window !== "undefined" ? (localStorage.getItem("github_access_token") || import.meta.env.VITE_GITHUB_TOKEN) : "";
     if (ghToken) {
       const ghResult = await pushPortfolioToGitHub(portfolioData, ghToken);
       if (ghResult.success) {
@@ -528,8 +533,10 @@ const Admin = () => {
       } else {
         toast.warning(ghResult.message);
       }
+    } else if (tursoSaved) {
+      toast.success("Changes saved live to Turso Cloud Database!");
     } else {
-      toast.success("Portfolio changes updated live in browser!");
+      toast.success("Portfolio changes updated live!");
     }
     setIsSavingGit(false);
   };
