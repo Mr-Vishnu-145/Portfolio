@@ -4,7 +4,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
   GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3, Download, Copy,
-  Database, DatabaseZap, CheckCircle2, X
+  Database, DatabaseZap, CheckCircle2, X, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
@@ -449,6 +449,46 @@ const Admin = () => {
     setDbInputToken("");
     toast.info("Database disconnected. Running in pure Git mode.");
     setIsDbModalOpen(false);
+  };
+
+  const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file (.jpg, .png, .webp).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        updateHero("avatarUrl", result);
+        toast.success("Profile photo uploaded!");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResumePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf" && !file.name.endsWith(".pdf")) {
+      toast.error("Please select a valid PDF file (.pdf).");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        updateResume("resumeUrl", result);
+        toast.success("Resume PDF uploaded!");
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // General Save & Auto Git Push Handler
@@ -1701,6 +1741,59 @@ const Admin = () => {
             {activeTab === "hero" && (
               <div className="space-y-6">
                 <h2 className="text-xl font-bold font-serif pb-3 border-b border-border">Hero & Contact Info</h2>
+
+                {/* Profile Photo Upload */}
+                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+                    Profile Photo / Avatar
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-20 h-20 rounded-full border-2 border-primary/30 overflow-hidden bg-background shrink-0 flex items-center justify-center shadow-md">
+                      {portfolioData.hero.avatarUrl ? (
+                        <img
+                          src={portfolioData.hero.avatarUrl}
+                          alt="Profile Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User size={36} className="text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="space-y-2 flex-1 w-full text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <label className="px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold cursor-pointer transition-opacity flex items-center gap-1.5 shrink-0">
+                          <Upload size={14} />
+                          Upload Photo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {portfolioData.hero.avatarUrl && (
+                          <button
+                            type="button"
+                            onClick={() => updateHero("avatarUrl", "")}
+                            className="px-3 py-2 rounded-lg border border-border text-destructive hover:bg-destructive/10 font-semibold transition-colors"
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Select a profile image from your computer (.png, .jpg, .webp).
+                      </p>
+                      <input
+                        type="text"
+                        value={portfolioData.hero.avatarUrl || ""}
+                        onChange={(e) => updateHero("avatarUrl", e.target.value)}
+                        placeholder="Or paste photo URL..."
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -3709,14 +3802,39 @@ const Admin = () => {
                 <div className="space-y-4 p-4 rounded-xl bg-background border border-border">
                   <h3 className="font-semibold text-foreground font-serif text-sm">Resume Settings</h3>
                   <div className="space-y-3 text-xs">
-                    <div className="space-y-1">
-                      <label className="text-muted-foreground font-semibold">Resume PDF URL Path (Relative or Absolute)</label>
+                    <div className="space-y-2 p-3 rounded-lg border border-border bg-card">
+                      <label className="text-muted-foreground font-semibold block">Resume PDF File Upload</label>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <label className="px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold cursor-pointer transition-opacity flex items-center gap-1.5 shrink-0">
+                          <Upload size={14} />
+                          Upload PDF Resume
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleResumePdfUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        {portfolioData.resume?.resumeUrl && (
+                          <a
+                            href={portfolioData.resume.resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-xs flex items-center gap-1"
+                          >
+                            <FileText size={14} /> View Current Resume PDF
+                          </a>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Select a .pdf file from your computer to update your live resume document.
+                      </p>
                       <input
                         type="text"
                         value={portfolioData.resume?.resumeUrl || ""}
                         onChange={(e) => updateResume("resumeUrl", e.target.value)}
                         placeholder="/Portfolio/resume.pdf"
-                        className="w-full px-3 py-2 rounded-lg border border-border bg-card text-foreground"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs font-mono"
                       />
                     </div>
                     <div className="space-y-1">
