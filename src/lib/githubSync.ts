@@ -28,8 +28,8 @@ export const pushPortfolioToGitHub = async (
   const base64Content = toBase64(newCode);
 
   try {
-    // Step 1: Get existing file SHA
-    const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+    // Step 1: Get existing file SHA from master branch
+    const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}?ref=master`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
         Accept: "application/vnd.github.v3+json",
@@ -42,7 +42,7 @@ export const pushPortfolioToGitHub = async (
       currentSha = getJson.sha;
     }
 
-    // Step 2: PUT updated file content to GitHub repo
+    // Step 2: PUT updated file content to GitHub repo on master branch
     const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
       method: "PUT",
       headers: {
@@ -54,7 +54,7 @@ export const pushPortfolioToGitHub = async (
         message: "Update portfolio content via Admin Panel",
         content: base64Content,
         sha: currentSha || undefined,
-        branch: "main",
+        branch: "master",
       }),
     });
 
