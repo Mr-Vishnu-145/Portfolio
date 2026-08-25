@@ -131,6 +131,133 @@ const DbLoader = ({ error }: { error?: string | null }) => (
   </div>
 );
 
+// 2-Step Entrance Splash Loader shown on first time entering the site
+const EntranceSplashLoader = () => {
+  const [phase, setPhase] = React.useState<1 | 2 | "done">(1);
+
+  React.useEffect(() => {
+    // Step 1 -> Step 2 after 1 second
+    const timer1 = setTimeout(() => {
+      setPhase(2);
+    }, 1000);
+
+    // Step 2 -> Complete after 2 seconds
+    const timer2 = setTimeout(() => {
+      setPhase("done");
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, []);
+
+  if (phase === "done") return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "hsl(var(--background))",
+        zIndex: 99999,
+        gap: "2rem",
+        transition: "opacity 0.5s ease-in-out",
+      }}
+    >
+      <div style={{ position: "relative" }}>
+        <img
+          src={`${import.meta.env.BASE_URL}favicon.ico`}
+          alt="Logo"
+          style={{
+            width: 76,
+            height: 76,
+            objectFit: "contain",
+            animation: "pulseGlow 2s ease-in-out infinite",
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            border: "3px solid hsl(var(--primary) / 0.15)",
+            borderTopColor: "hsl(var(--primary))",
+            animation: "spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite",
+          }}
+        />
+
+        {phase === 1 ? (
+          <p
+            key="phase1"
+            style={{
+              color: "hsl(var(--primary))",
+              fontFamily: "Inter, sans-serif",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              margin: 0,
+              animation: "fadeInUp 0.4s ease-out forwards",
+            }}
+          >
+            STEP 1/2 • INITIALIZING PORTFOLIO...
+          </p>
+        ) : (
+          <p
+            key="phase2"
+            style={{
+              color: "hsl(var(--primary))",
+              fontFamily: "Inter, sans-serif",
+              fontSize: "0.9rem",
+              fontWeight: 700,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              margin: 0,
+              animation: "fadeInUp 0.4s ease-out forwards",
+            }}
+          >
+            STEP 2/2 • WELCOME TO VISHNU'S PORTFOLIO ✨
+          </p>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin { 
+          to { transform: rotate(360deg); } 
+        }
+        @keyframes pulseGlow {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 12px hsl(var(--primary) / 0.3));
+          }
+          50% {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 30px hsl(var(--primary) / 0.7));
+          }
+        }
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const App = () => {
   useEffect(() => {
     // Non-blocking fetch from Turso DB in background
@@ -147,6 +274,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <EntranceSplashLoader />
         <Toaster />
         <Sonner />
         <HashRouter>
