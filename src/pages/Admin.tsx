@@ -420,22 +420,27 @@ const Admin = () => {
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
   const [dbInputUrl, setDbInputUrl] = useState(() => getTursoCredentials().url);
   const [dbInputToken, setDbInputToken] = useState(() => getTursoCredentials().token);
+  const [ghInputToken, setGhInputToken] = useState(() => typeof window !== "undefined" ? (localStorage.getItem("github_access_token") || "") : "");
   const [isTestingDb, setIsTestingDb] = useState(false);
 
   const openDbModal = () => {
     const creds = getTursoCredentials();
     setDbInputUrl(creds.url);
     setDbInputToken(creds.token);
+    setGhInputToken(localStorage.getItem("github_access_token") || "");
     setIsDbModalOpen(true);
   };
 
   const handleTestAndSaveDb = async () => {
     setIsTestingDb(true);
+    if (ghInputToken.trim()) {
+      localStorage.setItem("github_access_token", ghInputToken.trim());
+    }
     const result = await testTursoConnection(dbInputUrl, dbInputToken);
     if (result.success) {
       localStorage.setItem("turso_db_url", dbInputUrl.trim());
       localStorage.setItem("turso_auth_token", dbInputToken.trim());
-      toast.success("Turso Database connected successfully!");
+      toast.success("Settings saved & Turso Database connected!");
       setIsDbModalOpen(false);
     } else {
       toast.error(result.message);
@@ -4227,6 +4232,22 @@ const Admin = () => {
                   placeholder="Paste your Turso Auth Token here..."
                   className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground font-mono"
                 />
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-border">
+                <label className="font-semibold text-foreground flex items-center gap-1">
+                  <Github size={14} /> GitHub Personal Access Token (For Direct Web Push)
+                </label>
+                <input
+                  type="password"
+                  value={ghInputToken}
+                  onChange={(e) => setGhInputToken(e.target.value)}
+                  placeholder="ghp_... (Paste token to enable Git push from live web)"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground font-mono"
+                />
+                <p className="text-[11px] text-muted-foreground leading-normal">
+                  Paste your GitHub token (`ghp_...`) to allow clicking <b>Save & Push to Git</b> directly from any browser or live web site to commit & trigger GitHub deployment!
+                </p>
               </div>
             </div>
 
