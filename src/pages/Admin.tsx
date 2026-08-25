@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Save, Plus, Trash2, ShieldAlert, KeyRound,
   User, BookOpen, Cpu, Briefcase, Award, Sparkles,
-  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3
+  GraduationCap, Trophy, FileText, Github, Sun, Moon, MessageSquare, Sliders, Edit3, Download, Copy,
+  Database, DatabaseZap, CheckCircle2, X
 } from "lucide-react";
 import { toast } from "sonner";
 import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
@@ -12,11 +13,15 @@ import {
   getPortfolioData, savePortfolioData, PortfolioData,
   ProjectData, CertificationData, SkillCategory, SkillItem, AboutHighlight,
   ExperienceData, EducationData, AchievementItem, ResumeData, ContactExtraData,
-  getSectionVisibility, SectionVisibility
+  getSectionVisibility, SectionVisibility, generatePortfolioCodeFile
 } from "@/lib/portfolioData";
 import { usePortfolioStore } from "@/store/usePortfolioStore";
 import { useGitHubRepos } from "@/hooks/useGitHubRepos";
-import { fetchContactMessages, deleteContactMessage, isTursoActive, ContactMessage } from "@/lib/turso";
+import {
+  fetchContactMessages, deleteContactMessage, ContactMessage,
+  getIsTursoActive, getTursoCredentials, testTursoConnection, savePortfolioToDb
+} from "@/lib/turso";
+import { pushPortfolioToGitHub } from "@/lib/githubSync";
 
 const hashPassword = async (password: string): Promise<string> => {
   const msgBuffer = new TextEncoder().encode(password);
@@ -274,7 +279,7 @@ const Admin = () => {
     loadMessages();
 
     // Setup polling for messages if Turso is active
-    const interval = isTursoActive
+    const interval = getIsTursoActive()
       ? setInterval(() => {
           loadMessages();
         }, 10000)
@@ -411,14 +416,102 @@ const Admin = () => {
     toast.info("Logged out.");
   };
 
-  // General Save Handler
-  const handleSave = async () => {
-    const success = await usePortfolioStore.getState().updateData(portfolioData);
-    if (success) {
-      toast.success("Portfolio changes saved globally to database!");
+  const [isSavingGit, setIsSavingGit] = useState(false);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [dbInputUrl, setDbInputUrl] = useState(() => getTursoCredentials().url);
+  const [dbInputToken, setDbInputToken] = useState(() => getTursoCredentials().token);
+  const [isTestingDb, setIsTestingDb] = useState(false);
+
+  const openDbModal = () => {
+    const creds = getTursoCredentials();
+    setDbInputUrl(creds.url);
+    setDbInputToken(creds.token);
+    setIsDbModalOpen(true);
+  };
+
+  const handleTestAndSaveDb = async () => {
+    setIsTestingDb(true);
+    const result = await testTursoConnection(dbInputUrl, dbInputToken);
+    if (result.success) {
+      localStorage.setItem("turso_db_url", dbInputUrl.trim());
+      localStorage.setItem("turso_auth_token", dbInputToken.trim());
+      toast.success("Turso Database connected successfully!");
+      setIsDbModalOpen(false);
     } else {
-      toast.error("Failed to save changes to the database! Check connection or credentials.");
+      toast.error(result.message);
     }
+    setIsTestingDb(false);
+  };
+
+  const handleDisconnectDb = () => {
+    localStorage.removeItem("turso_db_url");
+    localStorage.removeItem("turso_auth_token");
+    setDbInputToken("");
+    toast.info("Database disconnected. Running in pure Git mode.");
+    setIsDbModalOpen(false);
+  };
+
+  // General Save & Auto Git Push Handler
+  const handleSave = async () => {
+    setIsSavingGit(true);
+    await usePortfolioStore.getState().updateData(portfolioData);
+
+    // Save to Turso Cloud DB if connected
+    if (getIsTursoActive()) {
+      savePortfolioToDb(portfolioData).catch(err => console.error("Turso DB save error:", err));
+    }
+
+    const code = generatePortfolioCodeFile(portfolioData);
+
+    try {
+      const res = await fetch("/__git-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        toast.success(json.message || "Saved, committed & pushed to GitHub!");
+        setIsSavingGit(false);
+        return;
+      }
+    } catch (e) {
+      // Local dev endpoint not available
+    }
+
+    const ghToken = localStorage.getItem("github_access_token") || import.meta.env.VITE_GITHUB_TOKEN;
+    if (ghToken) {
+      const ghResult = await pushPortfolioToGitHub(portfolioData, ghToken);
+      if (ghResult.success) {
+        toast.success(ghResult.message);
+      } else {
+        toast.warning(ghResult.message);
+      }
+    } else {
+      toast.success("Portfolio changes updated live in browser!");
+    }
+    setIsSavingGit(false);
+  };
+
+  const handleExportCode = () => {
+    const codeStr = generatePortfolioCodeFile(portfolioData);
+    const blob = new Blob([codeStr], { type: "text/typescript" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "portfolioData.ts";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded portfolioData.ts file!");
+  };
+
+  const handleCopyCode = () => {
+    const codeStr = generatePortfolioCodeFile(portfolioData);
+    navigator.clipboard.writeText(codeStr);
+    toast.success("Copied portfolioData.ts code to clipboard!");
   };
 
   // State Updaters
@@ -1395,32 +1488,40 @@ const Admin = () => {
             <div>
               <h1 className="text-xl font-bold font-serif flex items-center gap-2 flex-wrap">
                 Portfolio Admin Panel
-                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Active</span>
-                {isTursoActive ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-sans font-semibold">
-                    Cloud Database (Global)
+                {getIsTursoActive() ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-sans font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud DB Sync Active
                   </span>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-sans font-semibold animate-pulse" title="VITE_TURSO_AUTH_TOKEN is missing. Storing in local sandbox mode.">
-                    Local Storage Sandbox
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border font-sans font-semibold">
+                    Git Mode (DB Optional)
                   </span>
                 )}
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Modify certificates, skills, projects & bio content</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Modify certificates, skills, projects & bio content instantly</p>
             </div>
           </div>
  
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={openDbModal}
+              className="px-3 py-2 rounded-lg border border-border text-foreground hover:border-primary hover:text-primary text-xs font-semibold transition-all flex items-center gap-1.5 bg-background/50"
+              title="Configure optional Turso database connection"
+            >
+              <Database size={14} className={getIsTursoActive() ? "text-emerald-500" : "text-muted-foreground"} />
+              {getIsTursoActive() ? "Database Connected" : "Connect Database"}
+            </button>
+
             <button
               onClick={() => setDark(!dark)}
-              className="p-2.5 rounded-lg border border-border text-foreground hover:text-primary hover:border-primary transition-all duration-300 bg-background/50"
+              className="p-2 rounded-lg border border-border text-foreground hover:text-primary hover:border-primary transition-all duration-300 bg-background/50"
               aria-label="Toggle theme"
             >
               {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive text-sm font-medium transition-colors"
+              className="px-3 py-2 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive text-xs font-medium transition-colors"
             >
               Lock Panel
             </button>
@@ -1431,28 +1532,16 @@ const Admin = () => {
             )}
             <button
               onClick={handleSave}
-              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm transition-opacity flex items-center gap-2 shadow-lg shrink-0"
+              disabled={isSavingGit}
+              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 font-semibold text-sm transition-opacity flex items-center gap-2 shadow-lg shrink-0 disabled:opacity-50"
             >
               <Save size={16} />
-              Save Updates
+              {isSavingGit ? "Saving & Pushing to Git..." : "Save & Push to Git"}
             </button>
           </div>
         </div>
       </header>
 
-      {!isTursoActive && (
-        <div className="container mx-auto px-4 mt-6 max-w-5xl animate-fade-in">
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
-            <span className="p-1 rounded bg-destructive/20 font-bold shrink-0">⚠️ Inactive</span>
-            <div>
-              <p className="font-bold text-foreground text-sm">Database Credentials Missing</p>
-              <p className="mt-1">
-                Your database credentials are not configured (<code>VITE_TURSO_AUTH_TOKEN</code> is missing). Local sandbox mode has been disabled. You must configure a database connection in your <code>.env</code> file to save changes.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {storeDbError && (
         <div className="container mx-auto px-4 mt-6 max-w-5xl animate-fade-in">
@@ -3729,6 +3818,27 @@ const Admin = () => {
                 >
                   Update Passcode
                 </button>
+
+                <div className="space-y-4 p-4 rounded-xl bg-background border border-border mt-8">
+                  <h3 className="font-semibold text-foreground font-serif text-sm flex items-center gap-2">
+                    <Github size={16} className="text-primary" /> GitHub Remote Auto-Push Token (Optional)
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    When running locally, saves automatically commit and push to Git via CLI. If hosted on Vercel/Netlify, paste a GitHub Personal Access Token (<code>repo</code> scope) to enable remote automatic commits.
+                  </p>
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      defaultValue={localStorage.getItem("github_access_token") || ""}
+                      onChange={(e) => {
+                        localStorage.setItem("github_access_token", e.target.value.trim());
+                        toast.success("GitHub Token saved locally!");
+                      }}
+                      placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                      className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-border bg-card text-foreground"
+                    />
+                  </div>
+                </div>
               </form>
             )}
 
@@ -3787,6 +3897,16 @@ const Admin = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
                           {msg.message}
                         </p>
+
+                        <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                          <a
+                            href={`mailto:${msg.email}?subject=${encodeURIComponent(`Re: ${msg.subject || 'Portfolio Contact'}`)}&body=${encodeURIComponent(`Hi ${msg.name},\n\nThank you for reaching out through my portfolio.\n\nRegarding your message:\n"> ${msg.message.replace(/\n/g, '\n> ')}"\n\nBest regards,\n${portfolioData.hero.name} ${portfolioData.hero.lastName}`)}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+                          >
+                            <Mail size={13} />
+                            Draft Email Reply
+                          </a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -3928,6 +4048,91 @@ const Admin = () => {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Database Settings Modal */}
+      {isDbModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-scale-in space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Database className="text-primary" size={20} />
+                <h3 className="text-lg font-bold text-foreground font-serif">Turso Database Settings</h3>
+              </div>
+              <button
+                onClick={() => setIsDbModalOpen(false)}
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {getIsTursoActive() ? (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs flex items-center gap-2">
+                <CheckCircle2 size={16} className="shrink-0" />
+                <span><b>Database Active:</b> Your Turso database is connected and actively syncing with your Admin edits!</span>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Database connection is <b>100% optional</b>. Your site uses automatic Git Push to deploy changes to GitHub Pages by default. Connecting a Turso DB allows instant cloud syncing.
+              </p>
+            )}
+
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">Turso Database URL</label>
+                <input
+                  type="text"
+                  value={dbInputUrl}
+                  onChange={(e) => setDbInputUrl(e.target.value)}
+                  placeholder="libsql://database-name.turso.io"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">Turso Auth Token</label>
+                <input
+                  type="password"
+                  value={dbInputToken}
+                  onChange={(e) => setDbInputToken(e.target.value)}
+                  placeholder="Paste your Turso Auth Token here..."
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
+              {getIsTursoActive() ? (
+                <button
+                  type="button"
+                  onClick={handleDisconnectDb}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-all"
+                >
+                  Disconnect Database
+                </button>
+              ) : <div />}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDbModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:bg-accent transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isTestingDb}
+                  onClick={handleTestAndSaveDb}
+                  className="px-5 py-2 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isTestingDb ? "Testing Connection..." : "Test & Connect Database"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

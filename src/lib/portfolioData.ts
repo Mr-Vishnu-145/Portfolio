@@ -1,4 +1,180 @@
-import { PortfolioData } from "./portfolioData";
+export interface HeroData {
+  name: string;
+  lastName: string;
+  description: string;
+  github: string;
+  linkedin: string;
+  email: string;
+  phone: string;
+  avatarUrl?: string;
+}
+
+export interface AboutHighlight {
+  iconType: "education" | "focus" | "lookingFor";
+  title: string;
+  desc: string;
+}
+
+export interface AboutData {
+  bio: string;
+  highlights: AboutHighlight[];
+  objective?: string;
+  journey?: string;
+  interests?: string[];
+  goals?: string;
+  whatIEnjoyBuilding?: string;
+  learningTimeline?: { date: string; title: string; desc: string }[];
+}
+
+export interface SkillItem {
+  name: string;
+  level: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+  percentage: number;
+  description: string;
+  usedInProjects: string[];
+}
+
+export interface SkillCategory {
+  title: string;
+  skills: string[];
+  skillItems?: SkillItem[];
+}
+
+export interface ProjectData {
+  id: string;
+  title: string;
+  subtitle: string;
+  tech: string[];
+  desc: string;
+  features: string[];
+  link: string;
+  image?: string;
+  status?: "Completed" | "In Progress" | "Planned";
+  duration?: string;
+  role?: string;
+  featured?: boolean;
+  problemStatement?: string;
+  businessGoal?: string;
+  architectureDiagram?: string;
+  folderStructure?: string;
+  authenticationFlow?: string;
+  securityFeatures?: string[];
+  performanceOptimizations?: string[];
+  challengesFaced?: string[];
+  solutionsImplemented?: string[];
+  lessonsLearned?: string[];
+  timeline?: string;
+  teamSize?: string;
+  keyAchievements?: string[];
+  testingStrategy?: string;
+  seoOptimization?: string;
+  futureEnhancements?: string[];
+  databaseSchema?: string;
+  apiFlow?: string;
+}
+
+export interface CertificationData {
+  id: string;
+  name: string;
+  org: string;
+  image?: string;
+  issueDate?: string;
+  credentialId?: string;
+  skillsLearned?: string[];
+  verifyUrl?: string;
+  downloadUrl?: string;
+  category?: string;
+}
+
+export interface ExperienceData {
+  id: string;
+  companyLogo?: string;
+  companyName: string;
+  role: string;
+  duration: string;
+  location: string;
+  responsibilities: string[];
+  technologiesUsed: string[];
+  achievements: string[];
+  projectsWorkedOn: string[];
+  skillsGained: string[];
+}
+
+export interface EducationData {
+  id: string;
+  college: string;
+  degree: string;
+  department: string;
+  duration: string;
+  cgpa: string;
+  relevantCoursework: string[];
+  projects: string[];
+  achievements: string[];
+  activities: string[];
+  certificates: string[];
+}
+
+export interface AchievementItem {
+  id: string;
+  category: "Award" | "Hackathon" | "Contest" | "Contribution" | "Volunteer" | "Leadership";
+  title: string;
+  organization: string;
+  date: string;
+  description: string;
+  badge?: string;
+  link?: string;
+}
+
+export interface ResumeData {
+  resumeUrl: string;
+  atsContent: string;
+}
+
+export interface ContactExtraData {
+  availability: string;
+  responseTime: string;
+  location: string;
+}
+
+export interface SectionVisibility {
+  about: boolean;
+  skills: boolean;
+  projects: boolean;
+  certifications: boolean;
+  experience: boolean;
+  education: boolean;
+  achievements: boolean;
+  resume: boolean;
+  contact: boolean;
+}
+
+export interface PortfolioData {
+  hero: HeroData;
+  about: AboutData;
+  skills: SkillCategory[];
+  projects: ProjectData[];
+  certifications: CertificationData[];
+  experience: ExperienceData[];
+  education: EducationData[];
+  achievements: AchievementItem[];
+  resume: ResumeData;
+  contactExtra: ContactExtraData;
+  sectionVisibility?: SectionVisibility;
+}
+
+export const getSectionVisibility = (data: PortfolioData): SectionVisibility => {
+  return data.sectionVisibility || {
+    about: true,
+    skills: true,
+    projects: true,
+    certifications: true,
+    experience: true,
+    education: true,
+    achievements: true,
+    resume: true,
+    contact: true,
+  };
+};
 
 export const defaultPortfolioData: PortfolioData = {
   "sectionVisibility": {
@@ -803,4 +979,265 @@ export const defaultPortfolioData: PortfolioData = {
     "responseTime": "Typically replies within 24 hours",
     "location": "Coimbatore, Tamil Nadu, India (Willing to relocate)"
   }
+};
+
+const dbToken = import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
+export const isTursoActive = !!dbToken;
+
+let memoryPortfolioData: PortfolioData = defaultPortfolioData;
+
+export const getPortfolioData = (): PortfolioData => {
+  return memoryPortfolioData;
+};
+
+export const savePortfolioData = (data: PortfolioData): void => {
+  memoryPortfolioData = {
+    ...defaultPortfolioData,
+    ...data,
+    about: {
+      ...defaultPortfolioData.about,
+      ...(data?.about || {}),
+    },
+    hero: {
+      ...defaultPortfolioData.hero,
+      ...(data?.hero || {}),
+    },
+    skills: data?.skills || defaultPortfolioData.skills,
+    projects: data?.projects || defaultPortfolioData.projects,
+    certifications: data?.certifications || defaultPortfolioData.certifications,
+    experience: data?.experience || defaultPortfolioData.experience,
+    education: data?.education || defaultPortfolioData.education,
+    achievements: data?.achievements || defaultPortfolioData.achievements,
+    resume: data?.resume || defaultPortfolioData.resume,
+    contactExtra: data?.contactExtra || defaultPortfolioData.contactExtra,
+    sectionVisibility: data?.sectionVisibility || defaultPortfolioData.sectionVisibility,
+  };
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("portfolioDataUpdate"));
+  }
+};
+
+/**
+ * Exports current portfolio data as a downloadable TypeScript code file content for portfolioData.ts
+ */
+export const generatePortfolioCodeFile = (data: PortfolioData): string => {
+  const jsonStr = JSON.stringify(data, null, 2);
+  return `export interface HeroData {
+  name: string;
+  lastName: string;
+  description: string;
+  github: string;
+  linkedin: string;
+  email: string;
+  phone: string;
+  avatarUrl?: string;
+}
+
+export interface AboutHighlight {
+  iconType: "education" | "focus" | "lookingFor";
+  title: string;
+  desc: string;
+}
+
+export interface AboutData {
+  bio: string;
+  highlights: AboutHighlight[];
+  objective?: string;
+  journey?: string;
+  interests?: string[];
+  goals?: string;
+  whatIEnjoyBuilding?: string;
+  learningTimeline?: { date: string; title: string; desc: string }[];
+}
+
+export interface SkillItem {
+  name: string;
+  level: "Beginner" | "Intermediate" | "Advanced" | "Expert";
+  percentage: number;
+  description: string;
+  usedInProjects: string[];
+}
+
+export interface SkillCategory {
+  title: string;
+  skills: string[];
+  skillItems?: SkillItem[];
+}
+
+export interface ProjectData {
+  id: string;
+  title: string;
+  subtitle: string;
+  tech: string[];
+  desc: string;
+  features: string[];
+  link: string;
+  image?: string;
+  status?: "Completed" | "In Progress" | "Planned";
+  duration?: string;
+  role?: string;
+  featured?: boolean;
+  problemStatement?: string;
+  businessGoal?: string;
+  architectureDiagram?: string;
+  folderStructure?: string;
+  authenticationFlow?: string;
+  securityFeatures?: string[];
+  performanceOptimizations?: string[];
+  challengesFaced?: string[];
+  solutionsImplemented?: string[];
+  lessonsLearned?: string[];
+  timeline?: string;
+  teamSize?: string;
+  keyAchievements?: string[];
+  testingStrategy?: string;
+  seoOptimization?: string;
+  futureEnhancements?: string[];
+  databaseSchema?: string;
+  apiFlow?: string;
+}
+
+export interface CertificationData {
+  id: string;
+  name: string;
+  org: string;
+  image?: string;
+  issueDate?: string;
+  credentialId?: string;
+  skillsLearned?: string[];
+  verifyUrl?: string;
+  downloadUrl?: string;
+  category?: string;
+}
+
+export interface ExperienceData {
+  id: string;
+  companyLogo?: string;
+  companyName: string;
+  role: string;
+  duration: string;
+  location: string;
+  responsibilities: string[];
+  technologiesUsed: string[];
+  achievements: string[];
+  projectsWorkedOn: string[];
+  skillsGained: string[];
+}
+
+export interface EducationData {
+  id: string;
+  college: string;
+  degree: string;
+  department: string;
+  duration: string;
+  cgpa: string;
+  relevantCoursework: string[];
+  projects: string[];
+  achievements: string[];
+  activities: string[];
+  certificates: string[];
+}
+
+export interface AchievementItem {
+  id: string;
+  category: "Award" | "Hackathon" | "Contest" | "Contribution" | "Volunteer" | "Leadership";
+  title: string;
+  organization: string;
+  date: string;
+  description: string;
+  badge?: string;
+  link?: string;
+}
+
+export interface ResumeData {
+  resumeUrl: string;
+  atsContent: string;
+}
+
+export interface ContactExtraData {
+  availability: string;
+  responseTime: string;
+  location: string;
+}
+
+export interface SectionVisibility {
+  about: boolean;
+  skills: boolean;
+  projects: boolean;
+  certifications: boolean;
+  experience: boolean;
+  education: boolean;
+  achievements: boolean;
+  resume: boolean;
+  contact: boolean;
+}
+
+export interface PortfolioData {
+  hero: HeroData;
+  about: AboutData;
+  skills: SkillCategory[];
+  projects: ProjectData[];
+  certifications: CertificationData[];
+  experience: ExperienceData[];
+  education: EducationData[];
+  achievements: AchievementItem[];
+  resume: ResumeData;
+  contactExtra: ContactExtraData;
+  sectionVisibility?: SectionVisibility;
+}
+
+export const getSectionVisibility = (data: PortfolioData): SectionVisibility => {
+  return data.sectionVisibility || {
+    about: true,
+    skills: true,
+    projects: true,
+    certifications: true,
+    experience: true,
+    education: true,
+    achievements: true,
+    resume: true,
+    contact: true,
+  };
+};
+
+export const defaultPortfolioData: PortfolioData = ${jsonStr};
+
+const dbToken = import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
+export const isTursoActive = !!dbToken;
+
+let memoryPortfolioData: PortfolioData = defaultPortfolioData;
+
+export const getPortfolioData = (): PortfolioData => {
+  return memoryPortfolioData;
+};
+
+export const savePortfolioData = (data: PortfolioData): void => {
+  memoryPortfolioData = {
+    ...defaultPortfolioData,
+    ...data,
+    about: {
+      ...defaultPortfolioData.about,
+      ...(data?.about || {}),
+    },
+    hero: {
+      ...defaultPortfolioData.hero,
+      ...(data?.hero || {}),
+    },
+    skills: data?.skills || defaultPortfolioData.skills,
+    projects: data?.projects || defaultPortfolioData.projects,
+    certifications: data?.certifications || defaultPortfolioData.certifications,
+    experience: data?.experience || defaultPortfolioData.experience,
+    education: data?.education || defaultPortfolioData.education,
+    achievements: data?.achievements || defaultPortfolioData.achievements,
+    resume: data?.resume || defaultPortfolioData.resume,
+    contactExtra: data?.contactExtra || defaultPortfolioData.contactExtra,
+    sectionVisibility: data?.sectionVisibility || defaultPortfolioData.sectionVisibility,
+  };
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("portfolioDataUpdate"));
+  }
+};
+`;
 };

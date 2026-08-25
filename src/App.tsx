@@ -37,7 +37,7 @@ if (typeof window !== "undefined") {
 const queryClient = new QueryClient();
 
 // Full-screen loading spinner shown while waiting for the first DB fetch
-const DbLoader = () => (
+const DbLoader = ({ error }: { error?: string | null }) => (
   <div
     style={{
       position: "fixed",
@@ -90,8 +90,23 @@ const DbLoader = () => (
           animation: "shimmer 1.5s ease-in-out infinite alternate",
         }}
       >
-        Loading
+        Connecting to Database
       </p>
+      {error && (
+        <p
+          style={{
+            color: "hsl(var(--muted-foreground))",
+            fontFamily: "Inter, sans-serif",
+            fontSize: "0.75rem",
+            marginTop: "0.25rem",
+            maxWidth: "320px",
+            textAlign: "center",
+            opacity: 0.7,
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
 
     <style>{`
@@ -117,26 +132,17 @@ const DbLoader = () => (
 );
 
 const App = () => {
-  const isDbLoaded = usePortfolioStore((state) => state.isDbLoaded);
-
   useEffect(() => {
-    // Fetch from Turso DB immediately on mount — this sets isDbLoaded once resolved
+    // Non-blocking fetch from Turso DB in background
     usePortfolioStore.getState().loadFromDb();
 
-    // Poll every 5 seconds so edits in Admin appear live everywhere (only when Turso is active)
-    const interval = isTursoActive
-      ? setInterval(() => {
-          usePortfolioStore.getState().loadFromDb();
-        }, 5000)
-      : undefined;
+    // Poll every 5 seconds for live updates across all devices
+    const interval = setInterval(() => {
+      usePortfolioStore.getState().loadFromDb();
+    }, 5000);
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, []);
-
-  // Block rendering until the DB has responded at least once
-  if (!isDbLoaded) return <DbLoader />;
 
   return (
     <QueryClientProvider client={queryClient}>

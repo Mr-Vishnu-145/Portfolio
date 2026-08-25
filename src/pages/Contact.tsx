@@ -222,14 +222,23 @@ const Contact = () => {
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 shadow-sm text-xs"
-              >
-                <Send size={13} />
-                {isSubmitting ? "Sending message..." : "Send Message"}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:opacity-95 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 shadow-sm text-xs"
+                >
+                  <Send size={13} />
+                  {isSubmitting ? "Sending message..." : "Send Message"}
+                </button>
+                <a
+                  href={`mailto:${hero.email}?subject=${encodeURIComponent(subject || 'Portfolio Inquiry')}&body=${encodeURIComponent(`Hi ${hero.name},\n\n${message}\n\nFrom: ${name || ''} (${email || ''})`)}`}
+                  className="px-4 py-3 border border-border bg-background text-foreground font-semibold rounded-xl hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 text-xs text-center"
+                >
+                  <Mail size={13} />
+                  Draft in Mail App
+                </a>
+              </div>
             </form>
           </div>
         </motion.div>

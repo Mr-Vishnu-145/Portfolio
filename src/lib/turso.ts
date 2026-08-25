@@ -10,10 +10,17 @@ export interface ContactMessage {
   created_at: string;
 }
 
-const dbUrl = import.meta.env.VITE_TURSO_DATABASE_URL || "libsql://database-mr-vishnu-145.aws-ap-south-1.turso.io";
-const dbToken = import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
+export const getTursoCredentials = () => {
+  const customUrl = typeof window !== "undefined" ? localStorage.getItem("turso_db_url") : null;
+  const customToken = typeof window !== "undefined" ? localStorage.getItem("turso_auth_token") : null;
 
-export const isTursoActive = !!dbToken;
+  const url = customUrl || import.meta.env.VITE_TURSO_DATABASE_URL || "libsql://database-mr-vishnu-145.aws-ap-south-1.turso.io";
+  const token = customToken || import.meta.env.VITE_TURSO_AUTH_TOKEN || "";
+  return { url, token, isActive: !!token };
+};
+
+export const getIsTursoActive = () => getTursoCredentials().isActive;
+export const isTursoActive = getIsTursoActive();
 
 // Normalize libsql:// to https:// for browser-based fetch client compatibility
 const normalizeUrl = (url: string) => {
@@ -23,11 +30,29 @@ const normalizeUrl = (url: string) => {
   return url;
 };
 
-// Create LibSQL Client compatible with Web/Browser envs
-const client = createClient({
-  url: normalizeUrl(dbUrl),
-  authToken: dbToken,
-});
+const getClient = () => {
+  const { url, token } = getTursoCredentials();
+  return createClient({
+    url: normalizeUrl(url),
+    authToken: token,
+  });
+};
+
+export const testTursoConnection = async (url: string, token: string): Promise<{ success: boolean; message: string }> => {
+  if (!token.trim()) {
+    return { success: false, message: "Auth Token is required." };
+  }
+  try {
+    const testClient = createClient({
+      url: normalizeUrl(url.trim()),
+      authToken: token.trim(),
+    });
+    await testClient.execute("SELECT 1");
+    return { success: true, message: "Successfully connected to Turso database!" };
+  } catch (error) {
+    return { success: false, message: (error as Error).message || "Database connection test failed." };
+  }
+};
 
 let isDbInitialized = false;
 
@@ -35,13 +60,15 @@ let isDbInitialized = false;
  * Initializes the database tables
  */
 export const initDatabase = async (): Promise<void> => {
-  if (!dbToken) {
-    console.warn("Turso VITE_TURSO_AUTH_TOKEN is not configured. Database connection skipped.");
+  const { token, isActive } = getTursoCredentials();
+  if (!isActive) {
+    console.warn("Turso DB Token is not configured. Database connection skipped.");
     return;
   }
   if (isDbInitialized) return;
 
   try {
+    const client = getClient();
     // Create the schema table
     await client.execute(`
       CREATE TABLE IF NOT EXISTS portfolio_data (
@@ -80,9 +107,11 @@ export const initDatabase = async (): Promise<void> => {
 };
 
 export const fetchPortfolioFromDb = async (): Promise<PortfolioData | null> => {
-  if (!dbToken) return null;
+  const { isActive } = getTursoCredentials();
+  if (!isActive) return null;
 
   try {
+    const client = getClient();
     const result = await client.execute("SELECT data FROM portfolio_data WHERE id = 1 LIMIT 1");
     if (result.rows.length > 0) {
       const rawData = result.rows[0].data as string;
@@ -94,6 +123,7 @@ export const fetchPortfolioFromDb = async (): Promise<PortfolioData | null> => {
       try {
         console.log("Database table not found. Initializing schema...");
         await initDatabase();
+        const client = getClient();
         const result = await client.execute("SELECT data FROM portfolio_data WHERE id = 1 LIMIT 1");
         if (result.rows.length > 0) {
           const rawData = result.rows[0].data as string;
@@ -113,13 +143,15 @@ export const fetchPortfolioFromDb = async (): Promise<PortfolioData | null> => {
  * Saves the portfolio data to the Turso database
  */
 export const savePortfolioToDb = async (data: PortfolioData): Promise<boolean> => {
-  if (!dbToken) {
+  const { isActive } = getTursoCredentials();
+  if (!isActive) {
     console.warn("Turso Auth Token is missing. Remote DB update skipped.");
     return false;
   }
 
   try {
     await initDatabase();
+    const client = getClient();
     await client.execute({
       sql: "INSERT OR REPLACE INTO portfolio_data (id, data) VALUES (1, ?)",
       args: [JSON.stringify(data)],
@@ -140,13 +172,14 @@ export const saveContactMessage = async (
   subject: string,
   message: string
 ): Promise<boolean> => {
-  if (!isTursoActive) {
+  if (!getIsTursoActive()) {
     console.error("Database connection inactive. Cannot save contact message.");
     return false;
   }
 
   try {
     await initDatabase();
+    const client = getClient();
     await client.execute({
       sql: "INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)",
       args: [name, email, subject, message],
@@ -162,12 +195,13 @@ export const saveContactMessage = async (
  * Fetches all contact messages from the database
  */
 export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
-  if (!isTursoActive) {
+  if (!getIsTursoActive()) {
     console.error("Database connection inactive. Cannot fetch contact messages.");
     return [];
   }
 
   try {
+    const client = getClient();
     const result = await client.execute("SELECT * FROM contact_messages ORDER BY created_at DESC");
     return result.rows.map((row) => ({
       id: Number(row.id),
@@ -182,6 +216,7 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
     if (errMsg.includes("no such table") || errMsg.includes("does not exist") || errMsg.includes("not found")) {
       try {
         await initDatabase();
+        const client = getClient();
         const result = await client.execute("SELECT * FROM contact_messages ORDER BY created_at DESC");
         return result.rows.map((row) => ({
           id: Number(row.id),
@@ -205,13 +240,14 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
  * Deletes a contact message by ID
  */
 export const deleteContactMessage = async (id: number): Promise<boolean> => {
-  if (!isTursoActive) {
+  if (!getIsTursoActive()) {
     console.error("Database connection inactive. Cannot delete contact message.");
     return false;
   }
 
   try {
     await initDatabase();
+    const client = getClient();
     await client.execute({
       sql: "DELETE FROM contact_messages WHERE id = ?",
       args: [id],
@@ -222,3 +258,4 @@ export const deleteContactMessage = async (id: number): Promise<boolean> => {
     return false;
   }
 };
+
